@@ -277,7 +277,7 @@ func (c *Client) monitorTxs(ctx context.Context) error {
 // monitorTx does all the monitoring steps to the monitored tx
 func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Logger) {
 	var err error
-	logger.Info("processing")
+	logger.Info("processing eth transaction manager 1111111111-----------------------------")
 	// check if any of the txs in the history was confirmed
 	var lastReceiptChecked types.Receipt
 	// monitored tx is confirmed until we find a successful receipt
@@ -357,7 +357,9 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 
 	var signedTx *types.Transaction
+	logger.Info("processing eth transaction manager 222222222-----------------------------")
 	if !confirmed {
+		logger.Info("processing eth transaction manager 3333333-----------------------------")
 		// if is a reorged, move to the next
 		if mTx.status == MonitoredTxStatusReorged {
 			return
@@ -380,14 +382,17 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// rebuild transaction
 		tx := mTx.Tx()
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
+		logger.Info("processing eth transaction manager 444444======> ", tx.Hash().String())
 
 		// sign tx
 		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
+		logger.Info("processing eth transaction manager 55555======> ", signedTx)
 		if err != nil {
 			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
 			return
 		}
 		logger.Debugf("signed tx %v created", signedTx.Hash().String())
+		logger.Info("processing eth transaction manager 666666======> ", signedTx.Hash().String())
 
 		// add tx to monitored tx history
 		err = mTx.AddHistory(signedTx)
