@@ -16,6 +16,7 @@ import (
 	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/jackc/pgx/v4"
 )
@@ -386,13 +387,18 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		// sign tx
 		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
-		logger.Info("processing eth transaction manager 55555======> ", signedTx)
+
+		data, err := signedTx.MarshalBinary()
+		logger.Info("processing eth transaction manager 555555======> ", data)
+		logger.Info("processing eth transaction manager 666666======> ", hexutil.Encode(data))
+
+		logger.Info("processing eth transaction manager 777777======> ", signedTx)
 		if err != nil {
 			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
 			return
 		}
 		logger.Debugf("signed tx %v created", signedTx.Hash().String())
-		logger.Info("processing eth transaction manager 666666======> ", signedTx.Hash().String())
+		logger.Info("processing eth transaction manager 888888======> ", signedTx.Hash().String())
 
 		// add tx to monitored tx history
 		err = mTx.AddHistory(signedTx)
@@ -451,6 +457,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		}
 
 		// get tx receipt
+		logger.Info("processing eth transaction manager 777777======> ", signedTx.Hash().String())
 		var txReceipt *types.Receipt
 		txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
 		if err != nil {
