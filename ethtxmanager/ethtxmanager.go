@@ -357,7 +357,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 
 	// var signedTx *types.Transaction
-	logger.Info("processing eth transaction manager 222222222-----------------------------")
+	// logger.Info("processing eth transaction manager 222222222-----------------------------")
 	if !confirmed {
 
 		// if is a reorged, move to the next
@@ -380,9 +380,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		}
 
 		// rebuild transaction
+		logger.Info("processing eth transaction manager 00000000=====>", mTx)
+		logger.Info("processing eth transaction manager 1111111=====>", mTx.Tx())
+
 		tx := mTx.Tx()
 		logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
-		logger.Info("processing eth transaction manager 3333333=====>", tx.inner)
+		// logger.Info("processing eth transaction manager 3333333=====>", tx.gas)
 		data1, err := tx.MarshalBinary()
 		if err != nil {
 			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
