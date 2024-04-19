@@ -356,7 +356,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// 	}
 	// }
 
-	var signedTx *types.Transaction
+	// var signedTx *types.Transaction
 	logger.Info("processing eth transaction manager 222222222-----------------------------")
 	if !confirmed {
 		logger.Info("processing eth transaction manager 3333333-----------------------------")
