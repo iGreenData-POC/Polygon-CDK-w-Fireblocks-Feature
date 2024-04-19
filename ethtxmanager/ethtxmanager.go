@@ -382,14 +382,16 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		// rebuild transaction
 		tx := mTx.Tx()
+		data1, err := tx.MarshalBinary()
+		logger.Info("processing eth transaction manager 44444======> ", hexutil.Encode(data1))
+
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
-		logger.Info("processing eth transaction manager 444444======> ", tx.Hash().String())
+		logger.Info("processing eth transaction manager 55555======> ", tx.Hash().String())
 
 		// sign tx
 		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
 
 		data, err := signedTx.MarshalBinary()
-		logger.Info("processing eth transaction manager 555555======> ", data)
 		logger.Info("processing eth transaction manager 666666======> ", hexutil.Encode(data))
 
 		logger.Info("processing eth transaction manager 777777======> ", signedTx)
