@@ -385,6 +385,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		tx := mTx.Tx()
 		logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
+		logger.Info("processing eth transaction manager 3333333=====>", tx.Data)
 		// logger.Info("processing eth transaction manager 3333333=====>", tx.gas)
 		data1, err := tx.MarshalBinary()
 		if err != nil {
