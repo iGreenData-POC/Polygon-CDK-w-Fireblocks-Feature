@@ -381,7 +381,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		// rebuild transaction
 		tx := mTx.Tx()
-		logger.Info("processing eth transaction manager 3333333=====>", tx)
+		logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
+		logger.Info("processing eth transaction manager 3333333=====>", tx.inner)
 		data1, err := tx.MarshalBinary()
 		if err != nil {
 			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
