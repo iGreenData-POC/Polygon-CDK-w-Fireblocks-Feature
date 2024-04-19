@@ -276,7 +276,7 @@ func (c *Client) monitorTxs(ctx context.Context) error {
 
 // monitorTx does all the monitoring steps to the monitored tx
 func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Logger) {
-	var err error
+	// var err error
 	logger.Info("processing eth transaction manager 1111111111-----------------------------")
 	// check if any of the txs in the history was confirmed
 	var lastReceiptChecked types.Receipt
@@ -382,6 +382,10 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// rebuild transaction
 		tx := mTx.Tx()
 		data1, err := tx.MarshalBinary()
+		if err != nil {
+			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
+			return
+		}
 		logger.Info("processing eth transaction manager 44444======> ", hexutil.Encode(data1))
 
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
