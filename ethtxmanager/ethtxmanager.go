@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-node/log"
-	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -411,13 +410,13 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		data, err := signedTx.MarshalBinary()
 		if err != nil {
-			return err
+			logger.Info("inside monitorTx============errrrr====>", err)
 		}
 		logger.Info("inside monitorTx============222222====>", data)
 		logger.Info("inside monitorTx============333333====>", hexutil.Encode(data))
 
 		// check if the tx is already in the network, if not, send it
-		_, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
+		// _, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
 		// if not found, send it tx to the network
 		// if errors.Is(err, ethereum.NotFound) {
 		// 	logger.Debugf("signed tx not found in the network")
@@ -466,44 +465,44 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	}
 
 	// if mined, check receipt and mark as Failed or Confirmed
-	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
-		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
+	// if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
+	// 	receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
-		// check if state is already synchronized until the block
-		// where the tx was mined
-		block, err := c.state.GetLastBlock(ctx, nil)
-		if errors.Is(err, state.ErrStateNotSynchronized) {
-			logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
-			return
-		} else if err != nil {
-			logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
-			return
-		} else if block.BlockNumber < receiptBlockNum {
-			logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
-			return
-		} else {
-			mTx.status = MonitoredTxStatusConfirmed
-			mTx.blockNumber = lastReceiptChecked.BlockNumber
-			logger.Info("confirmed")
-		}
-	} else {
-		// if we should continue to monitor, we move to the next one and this will
-		// be reviewed in the next monitoring cycle
-		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
-			return
-		}
-		// otherwise we understand this monitored tx has failed
-		mTx.status = MonitoredTxStatusFailed
-		mTx.blockNumber = lastReceiptChecked.BlockNumber
-		logger.Info("failed")
-	}
+	// 	// check if state is already synchronized until the block
+	// 	// where the tx was mined
+	// 	block, err := c.state.GetLastBlock(ctx, nil)
+	// 	if errors.Is(err, state.ErrStateNotSynchronized) {
+	// 		logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
+	// 		return
+	// 	} else if err != nil {
+	// 		logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
+	// 		return
+	// 	} else if block.BlockNumber < receiptBlockNum {
+	// 		logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
+	// 		return
+	// 	} else {
+	// 		mTx.status = MonitoredTxStatusConfirmed
+	// 		mTx.blockNumber = lastReceiptChecked.BlockNumber
+	// 		logger.Info("confirmed")
+	// 	}
+	// } else {
+	// 	// if we should continue to monitor, we move to the next one and this will
+	// 	// be reviewed in the next monitoring cycle
+	// 	if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
+	// 		return
+	// 	}
+	// 	// otherwise we understand this monitored tx has failed
+	// 	mTx.status = MonitoredTxStatusFailed
+	// 	mTx.blockNumber = lastReceiptChecked.BlockNumber
+	// 	logger.Info("failed")
+	// }
 
-	// update monitored tx changes into storage
-	err = c.storage.Update(ctx, mTx, nil)
-	if err != nil {
-		logger.Errorf("failed to update monitored tx: %v", err)
-		return
-	}
+	// // update monitored tx changes into storage
+	// err = c.storage.Update(ctx, mTx, nil)
+	// if err != nil {
+	// 	logger.Errorf("failed to update monitored tx: %v", err)
+	// 	return
+	// }
 }
 
 // shouldContinueToMonitorThisTx checks the the tx receipt and decides if it should
