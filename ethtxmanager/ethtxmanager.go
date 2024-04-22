@@ -356,7 +356,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// 	}
 	// }
 
-	// var signedTx *types.Transaction
+	var signedTx *types.Transaction
 	// logger.Info("processing eth transaction manager 222222222-----------------------------")
 	if !confirmed {
 
@@ -380,30 +380,30 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		}
 
 		// rebuild transaction
-		logger.Info("processing eth transaction manager 00000000=====>", mTx)
-		logger.Info("processing eth transaction manager 1111111=====>", mTx.Tx())
+		// logger.Info("processing eth transaction manager 00000000=====>", mTx)
+		// logger.Info("processing eth transaction manager 1111111=====>", mTx.Tx())
 
 		tx := mTx.Tx()
-		logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
-		logger.Info("processing eth transaction manager 3333333=====>", tx.Data())
+		// logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
+		// logger.Info("processing eth transaction manager 3333333=====>", tx.Data())
 		// logger.Info("processing eth transaction manager 3333333=====>", tx.gas)
-		data1, err := tx.MarshalBinary()
-		if err != nil {
-			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
-			return
+		// data1, err := tx.MarshalBinary()
+		// if err != nil {
+		// 	logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
+		// 	return
 		}
-		logger.Info("processing eth transaction manager 44444======> ", hexutil.Encode(data1))
+		// logger.Info("processing eth transaction manager 44444======> ", hexutil.Encode(data1))
 
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
-		logger.Info("processing eth transaction manager 55555======> ", tx.Hash().String())
+		// logger.Info("processing eth transaction manager 55555======> ", tx.Hash().String())
 
-		// // sign tx
-		// signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
+		// sign tx
+		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
 
 		// data, err := signedTx.MarshalBinary()
 		// logger.Info("processing eth transaction manager 666666======> ", hexutil.Encode(data))
 
-		// logger.Info("processing eth transaction manager 777777======> ", signedTx)
+		logger.Info("processing eth transaction manager 777777======> ", signedTx)
 		// if err != nil {
 		// 	logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
 		// 	return
@@ -433,7 +433,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// // if not found, send it tx to the network
 		// if errors.Is(err, ethereum.NotFound) {
 		// 	logger.Debugf("signed tx not found in the network")
-		// 	err := c.etherman.SendTx(ctx, signedTx)
+		// err := c.etherman.SendTx(ctx, signedTx)
 		// 	if err != nil {
 		// 		logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
 		// 		return
