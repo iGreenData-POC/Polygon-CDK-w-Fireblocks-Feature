@@ -15,7 +15,6 @@ import (
 	"github.com/0xPolygonHermez/zkevm-node/log"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/jackc/pgx/v4"
 )
@@ -276,9 +275,8 @@ func (c *Client) monitorTxs(ctx context.Context) error {
 
 // monitorTx does all the monitoring steps to the monitored tx
 func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Logger) {
-	logger.Info("inside monitorTx============00000000000")
-	var err error
-	logger.Info("processing")
+	// var err error
+	logger.Info("processing monitorTx =====00000====>", mTx.id)
 	// check if any of the txs in the history was confirmed
 	var lastReceiptChecked types.Receipt
 	// monitored tx is confirmed until we find a successful receipt
@@ -357,114 +355,106 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	//  }
 	// }
 
-	var signedTx *types.Transaction
-	if !confirmed {
-		// if is a reorged, move to the next
-		if mTx.status == MonitoredTxStatusReorged {
-			return
-		}
+	// var signedTx *types.Transaction
+	// if !confirmed {
+	// 	// if is a reorged, move to the next
+	// 	if mTx.status == MonitoredTxStatusReorged {
+	// 		return
+	// 	}
 
-		// review tx and increase gas and gas price if needed
-		if mTx.status == MonitoredTxStatusSent {
-			err := c.reviewMonitoredTx(ctx, &mTx, logger)
-			if err != nil {
-				logger.Errorf("failed to review monitored tx: %v", err)
-				return
-			}
-			err = c.storage.Update(ctx, mTx, nil)
-			if err != nil {
-				logger.Errorf("failed to update monitored tx review change: %v", err)
-				return
-			}
-		}
+	// 	// review tx and increase gas and gas price if needed
+	// 	if mTx.status == MonitoredTxStatusSent {
+	// 		err := c.reviewMonitoredTx(ctx, &mTx, logger)
+	// 		if err != nil {
+	// 			logger.Errorf("failed to review monitored tx: %v", err)
+	// 			return
+	// 		}
+	// 		err = c.storage.Update(ctx, mTx, nil)
+	// 		if err != nil {
+	// 			logger.Errorf("failed to update monitored tx review change: %v", err)
+	// 			return
+	// 		}
+	// 	}
 
-		// rebuild transaction
-		tx := mTx.Tx()
-		logger.Debugf("unsigned tx %v created", tx.Hash().String())
+	// 	// rebuild transaction
+	// 	tx := mTx.Tx()
+	// 	logger.Debugf("unsigned tx %v created", tx.Hash().String())
 
-		// sign tx
-		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
-		logger.Info("inside monitorTx============11111====>", signedTx)
-		if err != nil {
-			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
-			return
-		}
-		logger.Debugf("signed tx %v created", signedTx.Hash().String())
+	// 	// sign tx
+	// 	signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
+	// 	if err != nil {
+	// 		logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
+	// 		return
+	// 	}
+	// 	logger.Debugf("signed tx %v created", signedTx.Hash().String())
 
-		// add tx to monitored tx history
-		err = mTx.AddHistory(signedTx)
-		if errors.Is(err, ErrAlreadyExists) {
-			logger.Infof("signed tx already existed in the history")
-		} else if err != nil {
-			logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
-			return
-		} else {
-			// update monitored tx changes into storage
-			err = c.storage.Update(ctx, mTx, nil)
-			if err != nil {
-				logger.Errorf("failed to update monitored tx: %v", err)
-				return
-			}
-			logger.Debugf("signed tx added to the monitored tx history")
-		}
+	// 	// add tx to monitored tx history
+	// 	err = mTx.AddHistory(signedTx)
+	// 	if errors.Is(err, ErrAlreadyExists) {
+	// 		logger.Infof("signed tx already existed in the history")
+	// 	} else if err != nil {
+	// 		logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
+	// 		return
+	// 	} else {
+	// 		// update monitored tx changes into storage
+	// 		err = c.storage.Update(ctx, mTx, nil)
+	// 		if err != nil {
+	// 			logger.Errorf("failed to update monitored tx: %v", err)
+	// 			return
+	// 		}
+	// 		logger.Debugf("signed tx added to the monitored tx history")
+	// 	}
 
-		data, err := signedTx.MarshalBinary()
-		if err != nil {
-			logger.Info("inside monitorTx============errrrr====>", err)
-		}
-		logger.Info("inside monitorTx============222222====>", data)
-		logger.Info("inside monitorTx============333333====>", hexutil.Encode(data))
+	// 	// check if the tx is already in the network, if not, send it
+	// 	_, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
+	// 	// if not found, send it tx to the network
+	// 	if errors.Is(err, ethereum.NotFound) {
+	// 		logger.Debugf("signed tx not found in the network")
+	// 		err := c.etherman.SendTx(ctx, signedTx)
+	// 		if err != nil {
+	// 			logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
+	// 			return
+	// 		}
+	// 		logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
+	// 		if mTx.status == MonitoredTxStatusCreated {
+	// 			// update tx status to sent
+	// 			mTx.status = MonitoredTxStatusSent
+	// 			logger.Debugf("status changed to %v", string(mTx.status))
+	// 			// update monitored tx changes into storage
+	// 			err = c.storage.Update(ctx, mTx, nil)
+	// 			if err != nil {
+	// 				logger.Errorf("failed to update monitored tx changes: %v", err)
+	// 				return
+	// 			}
+	// 		}
+	// 	} else {
+	// 		logger.Infof("signed tx already found in the network")
+	// 	}
 
-		// check if the tx is already in the network, if not, send it
-		// _, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
-		// if not found, send it tx to the network
-		// if errors.Is(err, ethereum.NotFound) {
-		// 	logger.Debugf("signed tx not found in the network")
-		// 	err := c.etherman.SendTx(ctx, signedTx)
-		// 	if err != nil {
-		// 		logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
-		// 		return
-		// 	}
-		// 	logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
-		// 	if mTx.status == MonitoredTxStatusCreated {
-		// 		// update tx status to sent
-		// 		mTx.status = MonitoredTxStatusSent
-		// 		logger.Debugf("status changed to %v", string(mTx.status))
-		// 		// update monitored tx changes into storage
-		// 		err = c.storage.Update(ctx, mTx, nil)
-		// 		if err != nil {
-		// 			logger.Errorf("failed to update monitored tx changes: %v", err)
-		// 			return
-		// 		}
-		// 	}
-		// } else {
-		// 	logger.Infof("signed tx already found in the network")
-		// }
+	// 	log.Infof("waiting signedTx to be mined...")
 
-		// log.Infof("waiting signedTx to be mined...")
+	// 	// wait tx to get mined
+	// 	confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
+	// 	if err != nil {
+	// 		logger.Errorf("failed to wait tx to be mined: %v", err)
+	// 		return
+	// 	}
+	// 	if !confirmed {
+	// 		log.Infof("signedTx not mined yet and timeout has been reached")
+	// 		return
+	// 	}
 
-		// // wait tx to get mined
-		// confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
-		// if err != nil {
-		// 	logger.Errorf("failed to wait tx to be mined: %v", err)
-		// 	return
-		// }
-		// if !confirmed {
-		// 	log.Infof("signedTx not mined yet and timeout has been reached")
-		// 	return
-		// }
+	// 	// get tx receipt
+	// 	var txReceipt *types.Receipt
+	// 	txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
+	// 	if err != nil {
+	// 		logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
+	// 		return
+	// 	}
+	// 	lastReceiptChecked = *txReceipt
+	// }
 
-		// // get tx receipt
-		// var txReceipt *types.Receipt
-		// txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
-		// if err != nil {
-		// 	logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
-		// 	return
-		// }
-		// lastReceiptChecked = *txReceipt
-	}
-
-	// if mined, check receipt and mark as Failed or Confirmed
+	// // if mined, check receipt and mark as Failed or Confirmed
 	// if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 	// 	receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
