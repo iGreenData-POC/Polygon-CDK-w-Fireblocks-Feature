@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/0xPolygonHermez/zkevm-node/log"
+	"github.com/0xPolygonHermez/zkevm-node/state"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -276,8 +277,9 @@ func (c *Client) monitorTxs(ctx context.Context) error {
 
 // monitorTx does all the monitoring steps to the monitored tx
 func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Logger) {
-	// var err error
-	logger.Info("processing eth transaction manager 1111111111-----------------------------")
+	logger.Info("inside monitorTx============00000000000")
+	var err error
+	logger.Info("processing")
 	// check if any of the txs in the history was confirmed
 	var lastReceiptChecked types.Receipt
 	// monitored tx is confirmed until we find a successful receipt
@@ -346,20 +348,18 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// caller know something is not right and needs to be review and to avoid to monitor this
 	// tx infinitely
 	// if len(mTx.history) == maxHistorySize {
-	// 	mTx.status = MonitoredTxStatusFailed
-	// 	mTxLogger.Infof("marked as failed because reached the history size limit: %v", err)
-	// 	// update monitored tx changes into storage
-	// 	err = c.storage.Update(ctx, mTx, nil)
-	// 	if err != nil {
-	// 		mTxLogger.Errorf("failed to update monitored tx when max history size limit reached: %v", err)
-	// 		continue
-	// 	}
+	//  mTx.status = MonitoredTxStatusFailed
+	//  mTxLogger.Infof("marked as failed because reached the history size limit: %v", err)
+	//  // update monitored tx changes into storage
+	//  err = c.storage.Update(ctx, mTx, nil)
+	//  if err != nil {
+	//      mTxLogger.Errorf("failed to update monitored tx when max history size limit reached: %v", err)
+	//      continue
+	//  }
 	// }
 
 	var signedTx *types.Transaction
-	// logger.Info("processing eth transaction manager 222222222-----------------------------")
 	if !confirmed {
-
 		// if is a reorged, move to the next
 		if mTx.status == MonitoredTxStatusReorged {
 			return
@@ -380,60 +380,48 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		}
 
 		// rebuild transaction
-		// logger.Info("processing eth transaction manager 00000000=====>", mTx)
-		// logger.Info("processing eth transaction manager 1111111=====>", mTx.Tx())
-
 		tx := mTx.Tx()
-		// logger.Info("processing eth transaction manager 22222222=====>", tx.Type())
-		// logger.Info("processing eth transaction manager 3333333=====>", tx.Data())
-		// logger.Info("processing eth transaction manager 3333333=====>", tx.gas)
-		// data1, err := tx.MarshalBinary()
-		// if err != nil {
-		// 	logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
-		// 	return
-		}
-		// logger.Info("processing eth transaction manager 44444======> ", hexutil.Encode(data1))
-
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
-		// logger.Info("processing eth transaction manager 55555======> ", tx.Hash().String())
 
 		// sign tx
 		signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
+		logger.Info("inside monitorTx============11111====>", signedTx)
+		if err != nil {
+			logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
+			return
+		}
+		logger.Debugf("signed tx %v created", signedTx.Hash().String())
 
-		// data, err := signedTx.MarshalBinary()
-		// logger.Info("processing eth transaction manager 666666======> ", hexutil.Encode(data))
+		// add tx to monitored tx history
+		err = mTx.AddHistory(signedTx)
+		if errors.Is(err, ErrAlreadyExists) {
+			logger.Infof("signed tx already existed in the history")
+		} else if err != nil {
+			logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
+			return
+		} else {
+			// update monitored tx changes into storage
+			err = c.storage.Update(ctx, mTx, nil)
+			if err != nil {
+				logger.Errorf("failed to update monitored tx: %v", err)
+				return
+			}
+			logger.Debugf("signed tx added to the monitored tx history")
+		}
 
-		logger.Info("processing eth transaction manager 777777======> ", signedTx)
-		// if err != nil {
-		// 	logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
-		// 	return
-		// }
-		// logger.Debugf("signed tx %v created", signedTx.Hash().String())
-		// logger.Info("processing eth transaction manager 888888======> ", signedTx.Hash().String())
+		data, err := signedTx.MarshalBinary()
+		if err != nil {
+			return err
+		}
+		logger.Info("inside monitorTx============222222====>", data)
+		logger.Info("inside monitorTx============333333====>", hexutil.Encode(data))
 
-		// // add tx to monitored tx history
-		// err = mTx.AddHistory(signedTx)
-		// if errors.Is(err, ErrAlreadyExists) {
-		// 	logger.Infof("signed tx already existed in the history")
-		// } else if err != nil {
-		// 	logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
-		// 	return
-		// } else {
-		// 	// update monitored tx changes into storage
-		// 	err = c.storage.Update(ctx, mTx, nil)
-		// 	if err != nil {
-		// 		logger.Errorf("failed to update monitored tx: %v", err)
-		// 		return
-		// 	}
-		// 	logger.Debugf("signed tx added to the monitored tx history")
-		// }
-
-		// // check if the tx is already in the network, if not, send it
-		// _, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
-		// // if not found, send it tx to the network
+		// check if the tx is already in the network, if not, send it
+		_, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
+		// if not found, send it tx to the network
 		// if errors.Is(err, ethereum.NotFound) {
 		// 	logger.Debugf("signed tx not found in the network")
-		// err := c.etherman.SendTx(ctx, signedTx)
+		// 	err := c.etherman.SendTx(ctx, signedTx)
 		// 	if err != nil {
 		// 		logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
 		// 		return
@@ -468,7 +456,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// }
 
 		// // get tx receipt
-		// logger.Info("processing eth transaction manager 777777======> ", signedTx.Hash().String())
 		// var txReceipt *types.Receipt
 		// txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
 		// if err != nil {
@@ -479,44 +466,44 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	}
 
 	// if mined, check receipt and mark as Failed or Confirmed
-	// if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
-	// 	receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
+	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
+		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
-	// 	// check if state is already synchronized until the block
-	// 	// where the tx was mined
-	// 	block, err := c.state.GetLastBlock(ctx, nil)
-	// 	if errors.Is(err, state.ErrStateNotSynchronized) {
-	// 		logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
-	// 		return
-	// 	} else if err != nil {
-	// 		logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
-	// 		return
-	// 	} else if block.BlockNumber < receiptBlockNum {
-	// 		logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
-	// 		return
-	// 	} else {
-	// 		mTx.status = MonitoredTxStatusConfirmed
-	// 		mTx.blockNumber = lastReceiptChecked.BlockNumber
-	// 		logger.Info("confirmed")
-	// 	}
-	// } else {
-	// 	// if we should continue to monitor, we move to the next one and this will
-	// 	// be reviewed in the next monitoring cycle
-	// 	if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
-	// 		return
-	// 	}
-	// 	// otherwise we understand this monitored tx has failed
-	// 	mTx.status = MonitoredTxStatusFailed
-	// 	mTx.blockNumber = lastReceiptChecked.BlockNumber
-	// 	logger.Info("failed")
-	// }
+		// check if state is already synchronized until the block
+		// where the tx was mined
+		block, err := c.state.GetLastBlock(ctx, nil)
+		if errors.Is(err, state.ErrStateNotSynchronized) {
+			logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
+			return
+		} else if err != nil {
+			logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
+			return
+		} else if block.BlockNumber < receiptBlockNum {
+			logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
+			return
+		} else {
+			mTx.status = MonitoredTxStatusConfirmed
+			mTx.blockNumber = lastReceiptChecked.BlockNumber
+			logger.Info("confirmed")
+		}
+	} else {
+		// if we should continue to monitor, we move to the next one and this will
+		// be reviewed in the next monitoring cycle
+		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
+			return
+		}
+		// otherwise we understand this monitored tx has failed
+		mTx.status = MonitoredTxStatusFailed
+		mTx.blockNumber = lastReceiptChecked.BlockNumber
+		logger.Info("failed")
+	}
 
-	// // update monitored tx changes into storage
-	// err = c.storage.Update(ctx, mTx, nil)
-	// if err != nil {
-	// 	logger.Errorf("failed to update monitored tx: %v", err)
-	// 	return
-	// }
+	// update monitored tx changes into storage
+	err = c.storage.Update(ctx, mTx, nil)
+	if err != nil {
+		logger.Errorf("failed to update monitored tx: %v", err)
+		return
+	}
 }
 
 // shouldContinueToMonitorThisTx checks the the tx receipt and decides if it should
