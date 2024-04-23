@@ -424,6 +424,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 			// err := c.etherman.SendTx(ctx, signedTx)
+			logger.Infof("string(mTx.nonce) 000000=========>", string(mTx.nonce))
+			logger.Infof("mTx.gasPrice.String() 000000=========>", mTx.gasPrice.String())
+			logger.Infof("string(mTx.gas) 000000=========>", string(mTx.gas))
+			logger.Infof("mTx.to.String() 000000=========>", mTx.to.String())
+			logger.Infof("string(mTx.data) 000000=========>", string(mTx.data))
+
 			payload := TransactionPayload{
 				Nonce:           string(mTx.nonce),
 				GasPrice:        mTx.gasPrice.String(),
@@ -431,6 +437,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				ContractAddress: mTx.to.String(),
 				Data:            string(mTx.data),
 			}
+
+			logger.Infof("payload 000000=========>", payload)
 
 			apiResponse, apiErr := sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
 			if apiErr != nil {
