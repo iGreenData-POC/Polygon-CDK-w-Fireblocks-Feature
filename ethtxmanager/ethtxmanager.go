@@ -5,7 +5,9 @@
 package ethtxmanager
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -46,6 +48,14 @@ type Client struct {
 	etherman ethermanInterface
 	storage  storageInterface
 	state    stateInterface
+}
+
+type TransactionPayload struct {
+	Nonce           string `json:"nonce"`
+	GasPrice        string `json:"gasPrice"`
+	GasLimit        string `json:"gasLimit"`
+	ContractAddress string `json:"contractAddress"`
+	Data            string `json:"data"`
 }
 
 // New creates new eth tx manager
@@ -277,12 +287,6 @@ func (c *Client) monitorTxs(ctx context.Context) error {
 
 // monitorTx does all the monitoring steps to the monitored tx
 func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Logger) {
-	apiResponse, apiErr := apiGetCall("http://34.136.253.25:3000/v1/transaction")
-	if apiErr != nil {
-		logger.Errorf("API call failed: %v", apiErr)
-		return
-	}
-	logger.Infof("API response: %s", apiResponse)
 	var err error
 	logger.Info("processing")
 	// check if any of the txs in the history was confirmed
@@ -420,25 +424,39 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 			// err := c.etherman.SendTx(ctx, signedTx)
+			payload := TransactionPayload{
+				Nonce:           string(mTx.nonce),
+				GasPrice:        mTx.gasPrice.String(),
+				GasLimit:        string(mTx.gas),
+				ContractAddress: mTx.to.String(),
+				Data:            string(mTx.data),
+			}
 
-			//call fireblocks adaptor
+			apiResponse, apiErr := sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
+			if apiErr != nil {
+				logger.Errorf("API call failed: %v", apiErr)
+				return
+			}
+			logger.Infof("API response 111111111=========>: %s", apiResponse)
+
+			// call fireblocks adaptor
 
 			// if err != nil {
 			// 	logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
 			// 	return
 			// }
 			// logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
-			// if mTx.status == MonitoredTxStatusCreated {
-			// 	// update tx status to sent
-			// 	mTx.status = MonitoredTxStatusSent
-			// 	logger.Debugf("status changed to %v", string(mTx.status))
-			// 	// update monitored tx changes into storage
-			// 	err = c.storage.Update(ctx, mTx, nil)
-			// 	if err != nil {
-			// 		logger.Errorf("failed to update monitored tx changes: %v", err)
-			// 		return
-			// 	}
-			// }
+			if mTx.status == MonitoredTxStatusCreated {
+				// update tx status to sent
+				mTx.status = MonitoredTxStatusSent
+				logger.Debugf("status changed to %v", string(mTx.status))
+				// update monitored tx changes into storage
+				err = c.storage.Update(ctx, mTx, nil)
+				if err != nil {
+					logger.Errorf("failed to update monitored tx changes: %v", err)
+					return
+				}
+			}
 		} else {
 			logger.Infof("transaction already found in the network")
 		}
@@ -507,16 +525,23 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 }
 
-func apiGetCall(url string) (string, error) {
+func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload) (string, error) {
 	client := &http.Client{
-		Timeout: time.Second * 10, // Setting a timeout for the request
+		Timeout: time.Second * 10, // Set a timeout for the request
 	}
 
-	// Creating the GET request
-	req, err := http.NewRequest("GET", url, nil)
+	// Marshal the payload into JSON
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
+
+	// Create the POST request
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json") // Set header to application/json
 
 	// Send the request
 	resp, err := client.Do(req)
@@ -526,12 +551,12 @@ func apiGetCall(url string) (string, error) {
 	defer resp.Body.Close()
 
 	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	return string(body), nil
+	return string(responseBody), nil
 }
 
 // shouldContinueToMonitorThisTx checks the the tx receipt and decides if it should
