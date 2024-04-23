@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -431,9 +432,9 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			logger.Infof("string(mTx.data) 000000=========>", string(mTx.data))
 
 			payload := TransactionPayload{
-				Nonce:           string(mTx.nonce),
+				Nonce:           strconv.FormatUint(mTx.nonce, 10),
 				GasPrice:        mTx.gasPrice.String(),
-				GasLimit:        string(mTx.gas),
+				GasLimit:        strconv.FormatUint(mTx.gas, 10),
 				ContractAddress: mTx.to.String(),
 				Data:            string(mTx.data),
 			}
