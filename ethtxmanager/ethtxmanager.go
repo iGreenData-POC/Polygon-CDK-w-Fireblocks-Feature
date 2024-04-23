@@ -504,6 +504,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// 	logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
 		// 	return
 		// }
+		log.Infof("txReceipt================>...", txReceipt)
 		lastReceiptChecked = *txReceipt
 	}
 
