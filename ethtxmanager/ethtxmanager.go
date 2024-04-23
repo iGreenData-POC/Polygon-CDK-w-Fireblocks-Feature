@@ -56,7 +56,7 @@ type TransactionPayload struct {
 	GasPrice        string `json:"gasPrice"`
 	GasLimit        string `json:"gasLimit"`
 	ContractAddress string `json:"contractAddress"`
-	Data            string `json:"data"`
+	Data            []byte `json:"data"`
 }
 
 // New creates new eth tx manager
@@ -425,18 +425,14 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 			// err := c.etherman.SendTx(ctx, signedTx)
-			logger.Infof("string(mTx.nonce) 000000=========>", strconv.FormatUint(mTx.nonce, 10))
-			logger.Infof("mTx.gasPrice.String() 000000=========>", mTx.gasPrice.String())
-			logger.Infof("string(mTx.gas) 000000=========>", strconv.FormatUint(mTx.gas, 10))
-			logger.Infof("mTx.to.String() 000000=========>", mTx.to.String())
-			logger.Infof("string(mTx.data) 000000=========>", string(mTx.data))
+			logger.Infof("data 000000=========>", mTx.data)
 
 			payload := TransactionPayload{
 				Nonce:           strconv.FormatUint(mTx.nonce, 10),
 				GasPrice:        mTx.gasPrice.String(),
 				GasLimit:        strconv.FormatUint(mTx.gas, 10),
 				ContractAddress: mTx.to.String(),
-				Data:            string(mTx.data),
+				Data:            mTx.data,
 			}
 
 			logger.Infof("payload 000000=========>", payload)
