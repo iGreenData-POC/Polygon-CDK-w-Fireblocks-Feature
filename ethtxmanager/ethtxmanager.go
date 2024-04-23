@@ -7,6 +7,7 @@ package ethtxmanager
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,7 +57,7 @@ type TransactionPayload struct {
 	GasPrice        string `json:"gasPrice"`
 	GasLimit        string `json:"gasLimit"`
 	ContractAddress string `json:"contractAddress"`
-	Data            []byte `json:"data"`
+	Data            string `json:"data"`
 }
 
 // New creates new eth tx manager
@@ -425,14 +426,15 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 			// err := c.etherman.SendTx(ctx, signedTx)
-			logger.Infof("data 000000=========>", mTx.data)
+
+			logger.Infof("dataStr 000000=========>", hex.EncodeToString(mTx.data))
 
 			payload := TransactionPayload{
 				Nonce:           strconv.FormatUint(mTx.nonce, 10),
 				GasPrice:        mTx.gasPrice.String(),
 				GasLimit:        strconv.FormatUint(mTx.gas, 10),
 				ContractAddress: mTx.to.String(),
-				Data:            mTx.data,
+				Data:            hex.EncodeToString(mTx.data),
 			}
 
 			logger.Infof("payload 000000=========>", payload)
