@@ -122,6 +122,14 @@ func (mTx monitoredTx) AddHistory(tx *types.Transaction) error {
 	return nil
 }
 
+func (mTx monitoredTx) AddHistoryFireblocks(txHash common.Hash) error {
+	if _, found := mTx.history[txHash]; found {
+		return ErrAlreadyExists
+	}
+	mTx.history[txHash] = true
+	return nil
+}
+
 // toStringPtr returns the current to field as a string pointer
 func (mTx *monitoredTx) toStringPtr() *string {
 	var to *string

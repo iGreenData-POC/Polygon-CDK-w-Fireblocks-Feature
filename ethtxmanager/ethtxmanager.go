@@ -450,6 +450,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			}
 
 			logger.Infof("API response 111111111=========>: %s", txHashStr)
+
+			err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
 			// tx.Hash() = txHash
 
 			// tx.Hash()
