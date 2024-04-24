@@ -303,12 +303,15 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
 	for txHash := range mTx.history {
+		logger.Infof("monitorTx====inside for loop===000000======>")
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
+			logger.Infof("monitorTx====inside for loop===000000===error===>")
 			logger.Errorf("failed to check if tx %v was mined: %v", txHash.String(), err)
 			continue
 		}
 
+		logger.Infof("monitorTx====inside for loop===000000===mined===>", mined)
 		// if the tx is not mined yet, check that not all the tx were mined and go to the next
 		if !mined {
 			allHistoryTxsWereMined = false
@@ -317,6 +320,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		lastReceiptChecked = *receipt
 
+		logger.Infof("monitorTx====lastReceiptChecked.Status===000000======>", lastReceiptChecked.Status)
+		logger.Infof("monitorTx====types.ReceiptStatusSuccessful===000000======>", types.ReceiptStatusSuccessful)
 		// if the tx was mined successfully we can set it as confirmed and break the loop
 		if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 			confirmed = true
@@ -371,6 +376,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 
 	// var signedTx *types.Transaction
+	logger.Infof("monitorTx=======000000====confirmed==>", confirmed)
 	var txHashStr string
 	if !confirmed {
 		// if is a reorged, move to the next
@@ -504,28 +510,35 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// 	logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
 		// 	return
 		// }
-		log.Infof("txReceipt================>...", txReceipt)
+
 		lastReceiptChecked = *txReceipt
+		log.Infof("lastReceiptChecked================>...", lastReceiptChecked)
 	}
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 		log.Infof("Transaction completed =========111111======>", txHashStr)
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
+		log.Infof("Transaction completed---------111111---receiptBlockNum-->", receiptBlockNum)
 
 		// check if state is already synchronized until the block
 		// where the tx was mined
 		block, err := c.state.GetLastBlock(ctx, nil)
+		log.Infof("Transaction completed---------111111---block-->", block)
 		if errors.Is(err, state.ErrStateNotSynchronized) {
+			log.Infof("Transaction completed---------222222----->")
 			logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
 			return
 		} else if err != nil {
+			log.Infof("Transaction completed---------333333----->")
 			logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
 			return
 		} else if block.BlockNumber < receiptBlockNum {
+			log.Infof("Transaction completed---------44444----->")
 			logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
 			return
 		} else {
+			log.Infof("Transaction completed---------55555----->")
 			mTx.status = MonitoredTxStatusConfirmed
 			mTx.blockNumber = lastReceiptChecked.BlockNumber
 			logger.Info("confirmed")
@@ -545,6 +558,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// update monitored tx changes into storage
 	err = c.storage.Update(ctx, mTx, nil)
+	log.Infof("Transaction updated---------11111----->")
 	if err != nil {
 		log.Infof("Transaction update failed =========111111======>", txHashStr)
 		logger.Errorf("failed to update monitored tx: %v", err)
