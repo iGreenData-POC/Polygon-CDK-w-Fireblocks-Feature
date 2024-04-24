@@ -289,6 +289,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
 	for txHash := range mTx.history {
+		logger.Infof("monitorTx====inside for loop===000000======>")
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
 			logger.Errorf("failed to check if tx %v was mined: %v", txHash.String(), err)
@@ -304,6 +305,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		lastReceiptChecked = *receipt
 
 		// if the tx was mined successfully we can set it as confirmed and break the loop
+		logger.Infof("monitorTx====lastReceiptChecked.Status===000000======>", lastReceiptChecked.Status)
+		logger.Infof("monitorTx====types.ReceiptStatusSuccessful===000000======>", types.ReceiptStatusSuccessful)
 		if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 			confirmed = true
 			break
@@ -356,6 +359,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// 	}
 	// }
 
+	logger.Infof("monitorTx=======000000====confirmed==>", confirmed)
 	var signedTx *types.Transaction
 	if !confirmed {
 		// if is a reorged, move to the next
