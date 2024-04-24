@@ -510,6 +510,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
+		log.Infof("Transaction completed =========111111======>", txHashStr)
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
 		// check if state is already synchronized until the block
@@ -530,6 +531,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			logger.Info("confirmed")
 		}
 	} else {
+		log.Infof("Transaction failed =========111111======>", txHashStr)
 		// if we should continue to monitor, we move to the next one and this will
 		// be reviewed in the next monitoring cycle
 		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
@@ -544,6 +546,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// update monitored tx changes into storage
 	err = c.storage.Update(ctx, mTx, nil)
 	if err != nil {
+		log.Infof("Transaction update failed =========111111======>", txHashStr)
 		logger.Errorf("failed to update monitored tx: %v", err)
 		return
 	}
