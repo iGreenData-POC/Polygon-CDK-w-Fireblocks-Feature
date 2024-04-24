@@ -453,33 +453,44 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			return
 		}
 		lastReceiptChecked = *txReceipt
+
+		log.Infof("Transaction receipt found---------111111----->", lastReceiptChecked)
+
 	}
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
+		log.Infof("Transaction completed---------111111---receiptBlockNum-->", receiptBlockNum)
 
 		// check if state is already synchronized until the block
 		// where the tx was mined
 		block, err := c.state.GetLastBlock(ctx, nil)
+		log.Infof("Transaction completed---------111111---block-->", block)
 		if errors.Is(err, state.ErrStateNotSynchronized) {
+			log.Infof("Transaction completed---------222222----->")
 			logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
 			return
 		} else if err != nil {
+			log.Infof("Transaction completed---------3333333----->")
 			logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
 			return
 		} else if block.BlockNumber < receiptBlockNum {
+			log.Infof("Transaction completed---------4444444----->")
 			logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
 			return
 		} else {
+			log.Infof("Transaction completed---------5555555----->")
 			mTx.status = MonitoredTxStatusConfirmed
 			mTx.blockNumber = lastReceiptChecked.BlockNumber
 			logger.Info("confirmed")
 		}
 	} else {
+		log.Infof("Transaction not completed---------11111111----->")
 		// if we should continue to monitor, we move to the next one and this will
 		// be reviewed in the next monitoring cycle
 		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
+			log.Infof("Transaction not completed---------2222222----->")
 			return
 		}
 		// otherwise we understand this monitored tx has failed
@@ -490,6 +501,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// update monitored tx changes into storage
 	err = c.storage.Update(ctx, mTx, nil)
+	log.Infof("Transaction updated---------11111----->")
 	if err != nil {
 		logger.Errorf("failed to update monitored tx: %v", err)
 		return
