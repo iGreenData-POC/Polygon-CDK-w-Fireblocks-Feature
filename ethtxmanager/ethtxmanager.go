@@ -59,6 +59,7 @@ type TransactionPayload struct {
 	GasLimit        string `json:"gasLimit"`
 	ContractAddress string `json:"contractAddress"`
 	Data            string `json:"data"`
+	Owner           string `json:"owner"`
 }
 
 // New creates new eth tx manager
@@ -441,6 +442,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				GasLimit:        strconv.FormatUint(mTx.gas, 10),
 				ContractAddress: mTx.to.String(),
 				Data:            hex.EncodeToString(mTx.data),
+				Owner:           mTx.owner,
 			}
 
 			txHashStr, err = sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
