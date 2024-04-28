@@ -102,6 +102,54 @@ func WaitTxToBeMined(parentCtx context.Context, client ethClienter, tx *types.Tr
 	return nil
 }
 
+func WaitTxToBeMinedFireblocks(parentCtx context.Context, client ethClienter, txHash common.Hash, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(parentCtx, timeout)
+	defer cancel()
+	receipt, err := WaitMinedFireblocks(ctx, client, txHash)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return err
+	} else if err != nil {
+		log.Errorf("error waiting tx %s to be mined: %w", txHash, err)
+		return err
+	}
+	if receipt.Status == types.ReceiptStatusFailed {
+		// Get revert reason
+		// reason, reasonErr := RevertReason(ctx, client, txHash, receipt.BlockNumber)
+		// if reasonErr != nil {
+		// 	reason = reasonErr.Error()
+		// }
+		// return fmt.Errorf("transaction has failed, reason: %s, receipt: %+v. tx: %+v, gas: %v", reason, receipt, txHash, tx.Gas())
+	}
+	log.Debug("Transaction successfully mined: ", txHash)
+	return nil
+}
+
+func WaitMinedFireblocks(ctx context.Context, client ethClienter, txHash common.Hash) (*types.Receipt, error) {
+	queryTicker := time.NewTicker(time.Second)
+	defer queryTicker.Stop()
+
+	// logger := log.New("hash", tx.Hash())
+	for {
+		receipt, err := client.TransactionReceipt(ctx, txHash)
+		if err == nil {
+			return receipt, nil
+		}
+
+		// if errors.Is(err, ethereum.NotFound) {
+		// 	logger.Trace("Transaction not yet mined")
+		// } else {
+		// 	logger.Trace("Receipt retrieval failed", "err", err)
+		// }
+
+		// Wait for the next round.
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-queryTicker.C:
+		}
+	}
+}
+
 // RevertReason returns the revert reason for a tx that has a receipt with failed status
 func RevertReason(ctx context.Context, c ethClienter, tx *types.Transaction, blockNumber *big.Int) (string, error) {
 	if tx == nil {

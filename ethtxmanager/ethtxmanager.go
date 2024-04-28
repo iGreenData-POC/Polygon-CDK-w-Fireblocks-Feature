@@ -481,39 +481,39 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		log.Infof("waiting transaction to be mined...")
 
 		// wait tx to get mined
-		// confirmed, err = c.etherman.WaitTxToBeMined(ctx, tx, c.cfg.WaitTxToBeMined.Duration)
-		// if err != nil {
-		// 	logger.Errorf("failed to wait tx to be mined: %v", err)
-		// 	return
-		// }
-		// if !confirmed {
-		// 	log.Infof("signedTx not mined yet and timeout has been reached")
-		// 	return
-		// }
-
-		var txReceipt *types.Receipt
-		for {
-			txReceipt, err = c.etherman.GetTxReceipt(ctx, common.HexToHash(txHashStr))
-			if err != nil {
-				if err == ethereum.NotFound {
-					// Receipt not found, wait and try again
-					fmt.Println("Receipt not available yet, waiting...")
-					time.Sleep(5 * time.Second) // Wait for 5 seconds before trying again
-					continue
-				}
-				// Some other error occurred, break the loop and handle it
-				log.Errorf("Failed to get transaction receipt: %v", err)
-			}
-			break // Break the loop if the receipt is successfully retrieved
+		confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
+		if err != nil {
+			logger.Errorf("failed to wait tx to be mined: %v", err)
+			return
+		}
+		if !confirmed {
+			log.Infof("signedTx not mined yet and timeout has been reached")
+			return
 		}
 
-		// get tx receipt
 		// var txReceipt *types.Receipt
-		// txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
-		// if err != nil {
-		// 	logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
-		// 	return
+		// for {
+		// 	txReceipt, err = c.etherman.GetTxReceipt(ctx, common.HexToHash(txHashStr))
+		// 	if err != nil {
+		// 		if err == ethereum.NotFound {
+		// 			// Receipt not found, wait and try again
+		// 			fmt.Println("Receipt not available yet, waiting...")
+		// 			time.Sleep(5 * time.Second) // Wait for 5 seconds before trying again
+		// 			continue
+		// 		}
+		// 		// Some other error occurred, break the loop and handle it
+		// 		log.Errorf("Failed to get transaction receipt: %v", err)
+		// 	}
+		// 	break // Break the loop if the receipt is successfully retrieved
 		// }
+
+		// get tx receipt
+		var txReceipt *types.Receipt
+		txReceipt, err = c.etherman.GetTxReceipt(ctx, common.HexToHash(txHashStr))
+		if err != nil {
+			logger.Errorf("failed to get tx receipt for tx %v: %v", common.HexToHash(txHashStr).String(), err)
+			return
+		}
 
 		lastReceiptChecked = *txReceipt
 		log.Infof("lastReceiptChecked================>...", lastReceiptChecked)
