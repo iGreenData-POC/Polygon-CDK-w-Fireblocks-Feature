@@ -205,9 +205,9 @@ func NewClient(cfg Config, l1Config L1Config, da dataavailability.BatchDataProvi
 		return nil, err
 	}
 	// Create smc clients
-	log.Info("1 l1Config.ZkEVMAddr ===> creating client in etherman: ",l1Config.ZkEVMAddr)
+	log.Info("1 l1Config.ZkEVMAddr ===> creating client in etherman: ", l1Config.ZkEVMAddr)
 	zkevm, err := polygonzkevm.NewPolygonzkevm(l1Config.ZkEVMAddr, ethClient)
-		log.Info("1 zkevm ===> creating client in etherman: ",zkevm)
+	log.Info("1 zkevm ===> creating client in etherman: ", zkevm)
 	if err != nil {
 		log.Errorf("error creating Polygonzkevm client (%s). Error: %w", l1Config.ZkEVMAddr.String(), err)
 		return nil, err
@@ -237,17 +237,17 @@ func NewClient(cfg Config, l1Config L1Config, da dataavailability.BatchDataProvi
 		log.Errorf("error creating NewPol client (%s). Error: %w", l1Config.PolAddr.String(), err)
 		return nil, err
 	}
-	
-	log.Info("5 zkevm ===> creating client in etherman: ",zkevm)
+
+	log.Info("5 zkevm ===> creating client in etherman: ", zkevm)
 	dapAddr, err := zkevm.DataAvailabilityProtocol(&bind.CallOpts{Pending: false})
 	log.Info("5===> creating client in etherman: ")
 	if err != nil {
-		log.Info("5.1===> creating client in etherman: ",err )
+		log.Info("5.1===> creating client in etherman: ", err)
 		return nil, err
 	}
 	dap, err := dataavailabilityprotocol.NewDataavailabilityprotocol(dapAddr, ethClient)
 	if err != nil {
-		log.Info("6.1===> creating client in etherman: ",err )
+		log.Info("6.1===> creating client in etherman: ", err)
 		return nil, err
 	}
 	var scAddresses []common.Address
@@ -887,6 +887,18 @@ func (etherMan *Client) processUpdateGlobalExitRootEvent(ctx context.Context, ma
 // WaitTxToBeMined waits for an L1 tx to be mined. It will return error if the tx is reverted or timeout is exceeded
 func (etherMan *Client) WaitTxToBeMined(ctx context.Context, tx *types.Transaction, timeout time.Duration) (bool, error) {
 	err := operations.WaitTxToBeMined(ctx, etherMan.EthClient, tx, timeout)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// WaitTxToBeMined waits for an L1 tx to be mined. It will return error if the tx is reverted or timeout is exceeded
+func (etherMan *Client) WaitTxToBeMinedFireblocks(ctx context.Context, txHash common.Hash, timeout time.Duration) (bool, error) {
+	err := operations.WaitTxToBeMinedFireblocks(ctx, etherMan.EthClient, txHash, timeout)
 	if errors.Is(err, context.DeadlineExceeded) {
 		return false, nil
 	}
