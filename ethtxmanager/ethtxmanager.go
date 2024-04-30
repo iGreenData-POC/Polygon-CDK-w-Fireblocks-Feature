@@ -376,9 +376,10 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	//  }
 	// }
 
-	// var signedTx *types.Transaction
+	var signedTx *types.Transaction
 	logger.Infof("monitorTx=======000000====confirmed==>", confirmed)
 	var txHashStr string
+	var featureEnabled bool
 	if !confirmed {
 		// if is a reorged, move to the next
 		if mTx.status == MonitoredTxStatusReorged {
@@ -399,70 +400,76 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			}
 		}
 
+		featureEnabled = true
+
 		// rebuild transaction
 		tx := mTx.Tx()
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
 		logger.Infof("Tx hash =======0000000========>", tx.Hash().String())
 
-		// // sign tx
-		// signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
-		// if err != nil {
-		// 	logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
-		// 	return
-		// }
-		// logger.Debugf("signed tx %v created", signedTx.Hash().String())
+		if !featureEnabled {
+			// sign tx
+			signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
+			if err != nil {
+				logger.Errorf("failed to sign tx %v: %v", tx.Hash().String(), err)
+				return
+			}
+			logger.Debugf("signed tx %v created", signedTx.Hash().String())
 
-		// add tx to monitored tx history
-		// err = mTx.AddHistory(signedTx)
-		// if errors.Is(err, ErrAlreadyExists) {
-		// 	logger.Infof("signed tx already existed in the history")
-		// } else if err != nil {
-		// 	logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
-		// 	return
-		// } else {
-		// 	// update monitored tx changes into storage
-		// 	err = c.storage.Update(ctx, mTx, nil)
-		// 	if err != nil {
-		// 		logger.Errorf("failed to update monitored tx: %v", err)
-		// 		return
-		// 	}
-		// 	logger.Debugf("signed tx added to the monitored tx history")
-		// }
+			// add tx to monitored tx history
+			err = mTx.AddHistory(signedTx)
+			if errors.Is(err, ErrAlreadyExists) {
+				logger.Infof("signed tx already existed in the history")
+			} else if err != nil {
+				logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
+				return
+			} else {
+				// update monitored tx changes into storage
+				err = c.storage.Update(ctx, mTx, nil)
+				if err != nil {
+					logger.Errorf("failed to update monitored tx: %v", err)
+					return
+				}
+				logger.Debugf("signed tx added to the monitored tx history")
+			}
+		}
 
 		// check if the tx is already in the network, if not, send it
 		_, _, err = c.etherman.GetTx(ctx, tx.Hash())
 		// if not found, send it tx to the network
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
-			// err := c.etherman.SendTx(ctx, signedTx)
 
-			payload := TransactionPayload{
-				Nonce:           strconv.FormatUint(mTx.nonce, 10),
-				GasPrice:        mTx.gasPrice.String(),
-				GasLimit:        strconv.FormatUint(mTx.gas, 10),
-				ContractAddress: mTx.to.String(),
-				Data:            hex.EncodeToString(mTx.data),
-				Owner:           mTx.owner,
+			if !featureEnabled {
+				err := c.etherman.SendTx(ctx, signedTx)
+				if err != nil {
+					logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
+					return
+				}
+				logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
+			} else {
+
+				payload := TransactionPayload{
+					Nonce:           strconv.FormatUint(mTx.nonce, 10),
+					GasPrice:        mTx.gasPrice.String(),
+					GasLimit:        strconv.FormatUint(mTx.gas, 10),
+					ContractAddress: mTx.to.String(),
+					Data:            hex.EncodeToString(mTx.data),
+					Owner:           mTx.owner,
+				}
+
+				txHashStr, err = sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
+
+				if err != nil {
+					logger.Errorf("API call failed: %v", err)
+					return
+				}
+
+				logger.Infof("API response 111111111=========>: %s", txHashStr)
+
+				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
 			}
 
-			txHashStr, err = sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
-			if err != nil {
-				logger.Errorf("API call failed: %v", err)
-				return
-			}
-
-			logger.Infof("API response 111111111=========>: %s", txHashStr)
-
-			err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
-			// tx.Hash() = txHash
-
-			// tx.Hash()
-
-			// if err != nil {
-			// 	logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
-			// 	return
-			// }
-			// logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
 			if mTx.status == MonitoredTxStatusCreated {
 				// update tx status to sent
 				mTx.status = MonitoredTxStatusSent
@@ -481,7 +488,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		log.Infof("waiting transaction to be mined...")
 
 		// wait tx to get mined
-		confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
+		if featureEnabled {
+			confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
+		} else {
+			confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
+		}
+
 		if err != nil {
 			logger.Errorf("failed to wait tx to be mined: %v", err)
 			return
@@ -490,22 +502,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			log.Infof("signedTx not mined yet and timeout has been reached")
 			return
 		}
-
-		// var txReceipt *types.Receipt
-		// for {
-		// 	txReceipt, err = c.etherman.GetTxReceipt(ctx, common.HexToHash(txHashStr))
-		// 	if err != nil {
-		// 		if err == ethereum.NotFound {
-		// 			// Receipt not found, wait and try again
-		// 			fmt.Println("Receipt not available yet, waiting...")
-		// 			time.Sleep(5 * time.Second) // Wait for 5 seconds before trying again
-		// 			continue
-		// 		}
-		// 		// Some other error occurred, break the loop and handle it
-		// 		log.Errorf("Failed to get transaction receipt: %v", err)
-		// 	}
-		// 	break // Break the loop if the receipt is successfully retrieved
-		// }
 
 		// get tx receipt
 		var txReceipt *types.Receipt
