@@ -179,5 +179,3 @@ require (
 	github.com/prometheus/client_golang v1.18.0
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 )
-
-replace github.com/0xPolygon/cdk-data-availability v0.0.5 => github.com/iGreenData-POC/git -Availability v0.0.5
