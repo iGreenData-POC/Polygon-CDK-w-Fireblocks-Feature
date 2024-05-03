@@ -60,6 +60,8 @@ type TransactionPayload struct {
 	ContractAddress string `json:"contractAddress"`
 	Data            string `json:"data"`
 	Owner           string `json:"owner"`
+	ChainId         string `json:"chainId"`
+	FbRawSigning    bool   `json:"fbRawSigning"`
 }
 
 // New creates new eth tx manager
@@ -381,6 +383,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	var txHashStr string
 	var featureEnabled bool
 	if !confirmed {
+
 		// if is a reorged, move to the next
 		if mTx.status == MonitoredTxStatusReorged {
 			return
@@ -441,6 +444,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			logger.Debugf("transaction not found in the network")
 
 			if !featureEnabled {
+				logger.Infof("sending transaction to network------------")
 				err := c.etherman.SendTx(ctx, signedTx)
 				if err != nil {
 					logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
@@ -448,7 +452,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				}
 				logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
 			} else {
-
+				logger.Infof("sending api request to fireblock adaptor service------------")
 				payload := TransactionPayload{
 					Nonce:           strconv.FormatUint(mTx.nonce, 10),
 					GasPrice:        mTx.gasPrice.String(),
@@ -456,6 +460,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					ContractAddress: mTx.to.String(),
 					Data:            hex.EncodeToString(mTx.data),
 					Owner:           mTx.owner,
+					ChainId:         "11155111",
+					FbRawSigning:    true,
 				}
 
 				txHashStr, err = sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
@@ -489,8 +495,10 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		// wait tx to get mined
 		if featureEnabled {
+			logger.Infof("WaitTxToBeMinedFireblocks------------")
 			confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
 		} else {
+			logger.Infof("WaitTxToBeMined------------")
 			confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
 		}
 
