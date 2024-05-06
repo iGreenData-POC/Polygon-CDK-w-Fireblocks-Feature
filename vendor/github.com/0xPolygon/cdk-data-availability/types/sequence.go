@@ -48,7 +48,7 @@ func (s *Sequence) HashToSign() []byte {
 	return currentHash
 }
 
-func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePayload) ([]byte, error) {
+func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePayload) (string, error) {
 	client := &http.Client{
 		Timeout: time.Second * 10, // Set a timeout for the request
 	}
@@ -56,35 +56,36 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 	// Marshal the payload into JSON
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Create the POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json") // Set header to application/json
 
 	// Send the request
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return responseBody, nil
+	return string(responseBody), nil
 }
 
 // Sign returns a signed sequence by the private key.
 // Note that what's being signed is the accumulated input hash
 func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	log.Infof("Inside sequence.go Sign function!")
+
 	hashToSign := s.HashToSign()
 
 	payload := MessagePayload{
@@ -92,20 +93,29 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	}
 	log.Infof("Created message payload!")
 	//add
-	sig, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
+	mySig, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
 	if err != nil {
 		log.Infof("Failed to send message request to adaptor")
 		return nil, err
 	}
-	log.Infof("Send message request to adaptor!", sig)
+	log.Infof("Send message request to adaptor!", mySig)
 	/*sig, err := crypto.Sign(hashToSign, privateKey)
 	if err != nil {
 		return nil, err
 	}*/
 
+	sig, err := hex.DecodeString(mySig)
+	if err != nil {
+		log.Infof("Failed to decode signature!", err)
+	}
+	log.Infof("The Decoded signature is:", sig)
+
 	rBytes := sig[:32]
+	log.Infof("The Decoded r value is:", string(rBytes))
 	sBytes := sig[32:64]
+	log.Infof("The Decoded s value is:", string(sBytes))
 	vByte := sig[64]
+	log.Infof("The Decoded v value is:", string(vByte))
 
 	if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
 		magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
