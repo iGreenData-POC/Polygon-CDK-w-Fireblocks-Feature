@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"math/big"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/0xPolygon/cdk-data-availability/log"
@@ -88,10 +87,12 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	log.Infof("Inside sequence.go Sign function!")
 
 	hashToSign := s.HashToSign()
+	log.Infof("Creating hashToSign==========>", hashToSign)
 
 	payload := MessagePayload{
 		Data: hex.EncodeToString(hashToSign),
 	}
+	log.Infof("Hex encoding hashToSign===========>", hex.EncodeToString(hashToSign))
 	log.Infof("Created message payload!")
 	//add
 	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
@@ -113,38 +114,63 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	}
 	log.Infof("The Decoded signature is:", sig)
 
-	rBytes := sig[:32]
-	log.Infof("The Decoded r value is:", string(rBytes))
-	sBytes := sig[32:64]
-	log.Infof("The Decoded s value is:", string(sBytes))
-	vByte := sig[64]
-	log.Infof("The Decoded v value is:", string(vByte))
+	///////
 
-	if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
-		log.Infof("Inside  strings.ToUpper(common.Bytes2Hex(sBytes))message from adaptor!")
-		magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
-		sBig := big.NewInt(0).SetBytes(sBytes)
-		magicBig := big.NewInt(0).SetBytes(magicNumber)
-		s1 := magicBig.Sub(magicBig, sBig)
-		sBytes = s1.Bytes()
-		if vByte == 0 {
-			vByte = 1
-		} else {
-			vByte = 0
-		}
-	}
-	// vByte += 27
+	firstHash := s.HashToSign()
+	log.Infof("Creating firstHash============>", firstHash)
 
-	actualSignature := []byte{}
-	actualSignature = append(actualSignature, rBytes...)
-	actualSignature = append(actualSignature, sBytes...)
-	actualSignature = append(actualSignature, vByte)
+	message := hex.EncodeToString(firstHash)
+	log.Infof("Hex encoding firstHash===========>", message)
 
-	log.Infof("ActualSignature message from adaptor!", actualSignature)
+	log.Infof("Creating wrapped message")
+	wrappedMessage := "\x19Ethereum Signed Message:\n" +
+		string(rune(len(message))) +
+		message
+
+	log.Infof("Creating SHA256 hash of wrapped message")
+	// Calculate the hash of the wrapped message
+	hash := sha256.Sum256([]byte(wrappedMessage))
+
+	log.Infof("Creating hash of hash of SHA256")
+	// Calculate the hash of the hash
+	contentHash := sha256.Sum256(hash[:])
+
+	log.Infof("Recovering public key")
+	pubKey, err := crypto.SigToPub(contentHash[:], sig)
+	log.Infof("REcovered key ====> ", crypto.PubkeyToAddress(*pubKey))
+
+	// rBytes := sig[:32]
+	// log.Infof("The Decoded r value is:", string(rBytes))
+	// sBytes := sig[32:64]
+	// log.Infof("The Decoded s value is:", string(sBytes))
+	// vByte := sig[64]
+	// log.Infof("The Decoded v value is:", string(vByte))
+
+	// if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
+	// 	log.Infof("Inside  strings.ToUpper(common.Bytes2Hex(sBytes))message from adaptor!")
+	// 	magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
+	// 	sBig := big.NewInt(0).SetBytes(sBytes)
+	// 	magicBig := big.NewInt(0).SetBytes(magicNumber)
+	// 	s1 := magicBig.Sub(magicBig, sBig)
+	// 	sBytes = s1.Bytes()
+	// 	if vByte == 0 {
+	// 		vByte = 1
+	// 	} else {
+	// 		vByte = 0
+	// 	}
+	// }
+	// // vByte += 27
+
+	// actualSignature := []byte{}
+	// actualSignature = append(actualSignature, rBytes...)
+	// actualSignature = append(actualSignature, sBytes...)
+	// actualSignature = append(actualSignature, vByte)
+
+	// log.Infof("ActualSignature message from adaptor!", actualSignature)
 
 	return &SignedSequence{
 		Sequence:  *s,
-		Signature: actualSignature,
+		Signature: sig,
 	}, nil
 }
 
