@@ -7,15 +7,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/0xPolygon/cdk-data-availability/log"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/0xPolygon/cdk-data-availability/log"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
 const (
@@ -93,18 +94,20 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	}
 	log.Infof("Created message payload!")
 	//add
-	mySig, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
+	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
 	if err != nil {
 		log.Infof("Failed to send message request to adaptor")
 		return nil, err
 	}
-	log.Infof("Send message request to adaptor!", mySig)
+	log.Infof("Signature message from adaptor!", signature)
 	/*sig, err := crypto.Sign(hashToSign, privateKey)
 	if err != nil {
 		return nil, err
 	}*/
+	trimmedSignature := signature[2:]
+	log.Infof("TrimmedSignature message from adaptor!", trimmedSignature)
 
-	sig, err := hex.DecodeString(mySig)
+	sig, err := hex.DecodeString(trimmedSignature)
 	if err != nil {
 		log.Infof("Failed to decode signature!", err)
 	}
