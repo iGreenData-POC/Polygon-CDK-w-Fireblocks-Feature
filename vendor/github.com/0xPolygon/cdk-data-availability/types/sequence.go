@@ -121,6 +121,7 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	log.Infof("The Decoded v value is:", string(vByte))
 
 	if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
+		log.Infof("Inside  strings.ToUpper(common.Bytes2Hex(sBytes))message from adaptor!")
 		magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
 		sBig := big.NewInt(0).SetBytes(sBytes)
 		magicBig := big.NewInt(0).SetBytes(magicNumber)
@@ -132,7 +133,7 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 			vByte = 0
 		}
 	}
-	vByte += 27
+	// vByte += 27
 
 	actualSignature := []byte{}
 	actualSignature = append(actualSignature, rBytes...)
