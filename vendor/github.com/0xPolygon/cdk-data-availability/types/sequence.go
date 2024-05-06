@@ -135,16 +135,16 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	}
 	// vByte += 27
 
-	actualSignature := []byte{}
+	/*actualSignature := []byte{}
 	actualSignature = append(actualSignature, rBytes...)
 	actualSignature = append(actualSignature, sBytes...)
 	actualSignature = append(actualSignature, vByte)
 
-	log.Infof("ActualSignature message from adaptor!", actualSignature)
+	log.Infof("ActualSignature message from adaptor!", actualSignature)*/
 
 	return &SignedSequence{
 		Sequence:  *s,
-		Signature: actualSignature,
+		Signature: sig,
 	}, nil
 }
 
