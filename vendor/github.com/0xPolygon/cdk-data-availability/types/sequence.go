@@ -142,13 +142,14 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 		fmt.Println("error recovering pub key", err)
 	}
 	val := crypto.PubkeyToAddress(*pubKey)
+
 	fmt.Println("recovered address is:", val.String())
-	// rBytes := sig[:32]
-	// log.Infof("The Decoded r value is:", string(rBytes))
-	// sBytes := sig[32:64]
-	// log.Infof("The Decoded s value is:", string(sBytes))
-	// vByte := sig[64]
-	// log.Infof("The Decoded v value is:", string(vByte))
+	rBytes := sig[:32]
+	log.Infof("The Decoded r value is:", string(rBytes))
+	sBytes := sig[32:64]
+	log.Infof("The Decoded s value is:", string(sBytes))
+	vByte := sig[64]
+	log.Infof("The Decoded v value is:", string(vByte))
 
 	// if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
 	// 	log.Infof("Inside  strings.ToUpper(common.Bytes2Hex(sBytes))message from adaptor!")
@@ -165,16 +166,18 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	// }
 	// // vByte += 27
 
-	// actualSignature := []byte{}
-	// actualSignature = append(actualSignature, rBytes...)
-	// actualSignature = append(actualSignature, sBytes...)
-	// actualSignature = append(actualSignature, vByte)
+	actualSignature := []byte{}
+	actualSignature = append(actualSignature, rBytes...)
+	actualSignature = append(actualSignature, sBytes...)
+	actualSignature = append(actualSignature, vByte)
+	log.Infof("The Decoded v value is hex.EncodeToString(sig):", hex.EncodeToString(sig))
+	log.Infof("The Decoded v value is hex.EncodeToString(actualSignature):", hex.EncodeToString(actualSignature))
 
 	// log.Infof("ActualSignature message from adaptor!", actualSignature)
 
 	return &SignedSequence{
 		Sequence:  *s,
-		Signature: sig,
+		Signature: actualSignature,
 	}, nil
 }
 
