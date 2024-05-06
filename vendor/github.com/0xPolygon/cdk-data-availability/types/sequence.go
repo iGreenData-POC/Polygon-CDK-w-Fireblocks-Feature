@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -122,23 +123,26 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	message := hex.EncodeToString(firstHash)
 	log.Infof("Hex encoding firstHash===========>", message)
 
-	log.Infof("Creating wrapped message")
 	wrappedMessage := "\x19Ethereum Signed Message:\n" +
 		string(rune(len(message))) +
 		message
 
-	log.Infof("Creating SHA256 hash of wrapped message")
 	// Calculate the hash of the wrapped message
 	hash := sha256.Sum256([]byte(wrappedMessage))
 
-	log.Infof("Creating hash of hash of SHA256")
 	// Calculate the hash of the hash
 	contentHash := sha256.Sum256(hash[:])
 
-	log.Infof("Recovering public key")
-	pubKey, err := crypto.SigToPub(contentHash[:], sig)
-	log.Infof("REcovered key ====> ", crypto.PubkeyToAddress(*pubKey))
+	mySig := make([]byte, 65)
+	copy(mySig, trimmedSignature)
+	mySig[64] -= 27
 
+	pubKey, err := crypto.SigToPub(contentHash[:], mySig)
+	if err != nil {
+		fmt.Println("error recovering pub key", err)
+	}
+	val := crypto.PubkeyToAddress(*pubKey)
+	fmt.Println("recovered address is:", val.String())
 	// rBytes := sig[:32]
 	// log.Infof("The Decoded r value is:", string(rBytes))
 	// sBytes := sig[32:64]
