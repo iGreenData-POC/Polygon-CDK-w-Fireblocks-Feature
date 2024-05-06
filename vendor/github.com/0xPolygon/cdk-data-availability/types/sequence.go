@@ -134,7 +134,7 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	contentHash := sha256.Sum256(hash[:])
 
 	mySig := make([]byte, 65)
-	copy(mySig, trimmedSignature)
+	copy(mySig, sig)
 	mySig[64] -= 27
 
 	pubKey, err := crypto.SigToPub(contentHash[:], mySig)
