@@ -175,6 +175,11 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 
 	// log.Infof("ActualSignature message from adaptor!", actualSignature)
 
+	// test := &SignedSequence{
+	// 	Sequence:  *s,
+	// 	Signature: actualSignature,
+	// }
+
 	return &SignedSequence{
 		Sequence:  *s,
 		Signature: actualSignature,

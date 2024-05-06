@@ -2,6 +2,7 @@ package datacommittee
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -151,6 +152,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 		sequence = append(sequence, seq)
 	}
 	signedSequence, err := sequence.Sign(s.privKey)
+	log.Infof("The returned is hex.EncodeToString(sig):", hex.EncodeToString(signedSequence.Signature))
 	if err != nil {
 		return nil, err
 	}
