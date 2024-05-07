@@ -76,6 +76,8 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
+	log.Infof("Send request to adaptor responseBody==========>", responseBody)
+	log.Infof("Send request to adaptor string(responseBody)==========>", string(responseBody))
 	if err != nil {
 		return "", err
 	}
