@@ -216,12 +216,51 @@ func (s *SignedSequence) Signer() (common.Address, error) {
 	if len(s.Signature) != signatureLen {
 		return common.Address{}, errors.New("invalid signature")
 	}
-	sig := make([]byte, signatureLen)
+	log.Infof("The received signature from sequence sender", hex.EncodeToString(s.Signature))
+
+	// mySig := make([]byte, 65)
+	// copy(mySig, sig)
+	// mySig[64] -= 27
+	/*marshalledSig, err := s.Signature.MarshalText()
+	if err != nil {
+		log.Infof("error", err)
+	}*/
+
+	sig := make([]byte, 65)
 	copy(sig, s.Signature)
 	sig[64] -= 27
-	pubKey, err := crypto.SigToPub(s.Sequence.HashToSign(), sig)
+
+	//double hash as per Fireblocks
+
+	/////
+	firstHash := s.Sequence.HashToSign()
+	log.Infof("Creating firstHash in DAC============>", firstHash)
+
+	message := hex.EncodeToString(firstHash)
+	log.Infof("Hex encoding firstHash= in DAC==========>", message)
+
+	wrappedMessage := "\x19Ethereum Signed Message:\n" +
+		string(rune(len(message))) +
+		message
+
+	// Calculate the hash of the wrapped message
+	hash := sha256.Sum256([]byte(wrappedMessage))
+
+	// Calculate the hash of the hash
+	contentHash := sha256.Sum256(hash[:])
+
+	// mySig := make([]byte, 65)
+	// copy(mySig, sig)
+	// mySig[64] -= 27
+
+	log.Infof("REcovetring key in DAC ====================")
+	pubKey, err := crypto.SigToPub(contentHash[:], sig)
 	if err != nil {
+		log.Infof("error converting to public key", err)
 		return common.Address{}, err
 	}
+	val := crypto.PubkeyToAddress(*pubKey)
+	log.Infof("recovered address  in DAC is:", val.String())
+
 	return crypto.PubkeyToAddress(*pubKey), nil
 }
