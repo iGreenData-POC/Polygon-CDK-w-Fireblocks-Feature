@@ -576,7 +576,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload) (string, error) {
 	client := &http.Client{
-		Timeout: time.Second * 10, // Set a timeout for the request
+		Timeout: time.Second * 60, // Set a timeout for the request
 	}
 
 	// Marshal the payload into JSON

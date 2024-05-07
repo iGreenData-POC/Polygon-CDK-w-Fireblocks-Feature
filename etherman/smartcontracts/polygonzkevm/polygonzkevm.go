@@ -1355,6 +1355,9 @@ func (_Polygonzkevm *PolygonzkevmTransactorSession) SequenceBatches(batches []Po
 func (_Polygonzkevm *PolygonzkevmTransactor) SequenceBatchesValidium(opts *bind.TransactOpts, batches []PolygonValidiumEtrogValidiumBatchData, l2Coinbase common.Address, dataAvailabilityMessage []byte) (*types.Transaction, error) {
 	return _Polygonzkevm.contract.Transact(opts, "sequenceBatchesValidium", batches, l2Coinbase, dataAvailabilityMessage)
 }
+func (_Polygonzkevm *PolygonzkevmTransactor) SequenceBatchesValidiumCustom(batches []PolygonValidiumEtrogValidiumBatchData, l2Coinbase common.Address, dataAvailabilityMessage []byte) (*common.Address, []byte, error) {
+	return _Polygonzkevm.contract.TransactCustom("sequenceBatchesValidium", batches, l2Coinbase, dataAvailabilityMessage)
+}
 
 // SequenceBatchesValidium is a paid mutator transaction binding the contract method 0x2d72c248.
 //

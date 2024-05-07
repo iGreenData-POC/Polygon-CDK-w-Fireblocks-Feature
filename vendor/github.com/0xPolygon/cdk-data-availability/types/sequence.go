@@ -230,8 +230,7 @@ func (s *SignedSequence) Signer() (common.Address, error) {
 	copy(sig, s.Signature)
 	sig[64] -= 27
 
-	//double hash as per Fireblocks
-
+	//double hash as per Fireblo
 	/////
 	firstHash := s.Sequence.HashToSign()
 	log.Infof("Creating firstHash in DAC============>", firstHash)
