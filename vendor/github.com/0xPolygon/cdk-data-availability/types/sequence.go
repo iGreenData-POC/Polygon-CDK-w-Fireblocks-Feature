@@ -73,14 +73,16 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 	resp, err := client.Do(req)
 	log.Infof("Send request to adaptor resp 22222==========>", resp)
 	if err != nil {
+		fmt.Println("Send request to adaptor error ::::", err)
+		log.Infof("Send request to adaptor error 333333==========>", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
-	log.Infof("Send request to adaptor responseBody 33333==========>", responseBody)
-	log.Infof("Send request to adaptor string(responseBody)44444==========>", string(responseBody))
+	log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
+	log.Infof("Send request to adaptor string(responseBody)5555==========>", string(responseBody))
 	if err != nil {
 		return "", err
 	}
