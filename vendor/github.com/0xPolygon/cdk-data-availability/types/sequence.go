@@ -51,7 +51,7 @@ func (s *Sequence) HashToSign() []byte {
 
 func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePayload) (string, error) {
 	client := &http.Client{
-		Timeout: time.Second * 10, // Set a timeout for the request
+		Timeout: time.Second * 30, // Set a timeout for the request
 	}
 
 	// Marshal the payload into JSON
