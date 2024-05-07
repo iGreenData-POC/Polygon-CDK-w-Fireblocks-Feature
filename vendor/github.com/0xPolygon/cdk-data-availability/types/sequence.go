@@ -56,6 +56,7 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Marshal the payload into JSON
 	jsonData, err := json.Marshal(payload)
+	log.Infof("Send request to adaptor jsonData 00000==========>", jsonData)
 	if err != nil {
 		return "", err
 	}
@@ -66,9 +67,11 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json") // Set header to application/json
+	log.Infof("Send request to adaptor req 11111==========>", req)
 
 	// Send the request
 	resp, err := client.Do(req)
+	log.Infof("Send request to adaptor resp 22222==========>", resp)
 	if err != nil {
 		return "", err
 	}
@@ -76,8 +79,8 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
-	log.Infof("Send request to adaptor responseBody==========>", responseBody)
-	log.Infof("Send request to adaptor string(responseBody)==========>", string(responseBody))
+	log.Infof("Send request to adaptor responseBody 33333==========>", responseBody)
+	log.Infof("Send request to adaptor string(responseBody)44444==========>", string(responseBody))
 	if err != nil {
 		return "", err
 	}
