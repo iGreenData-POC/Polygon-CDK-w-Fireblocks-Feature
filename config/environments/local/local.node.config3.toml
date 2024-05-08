@@ -113,8 +113,8 @@ WaitPeriodSendSequence = "5s"
 LastBatchVirtualizationTimeMaxWaitPeriod = "5s"
 L1BlockTimestampMargin = "30s"
 MaxTxSizeForL1 = 131072
-FireblocksSenderAddress="0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
-L2Coinbase = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
+FireblocksSenderAddress="0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
+L2Coinbase = "0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "testonly"}
 
 [Aggregator]

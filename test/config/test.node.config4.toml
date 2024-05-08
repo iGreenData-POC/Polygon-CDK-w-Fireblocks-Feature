@@ -130,7 +130,7 @@ WaitPeriodSendSequence = "120s"
 LastBatchVirtualizationTimeMaxWaitPeriod = "600s"
 L1BlockTimestampMargin = "5s"
 MaxTxSizeForL1 = 131072
-FireblocksSenderAddress="0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
+FireblocksSenderAddress=""
 L2Coinbase = "0xD44B3b1e21d5F55f5b5Bb050E68218552aa4eAfC"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
 	[SequenceSender.StreamClient]
