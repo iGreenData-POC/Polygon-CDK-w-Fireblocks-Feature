@@ -464,7 +464,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					FbRawSigning:    true,
 				}
 
-				txHashStr, err = sendRequestsToAdaptor(ctx, "http://34.136.253.25:3000/v1/transaction", payload)
+				txHashStr, err = sendRequestsToAdaptor(ctx, "http://10.40.6.18:3000/v1/transaction", payload)
 
 				if err != nil {
 					logger.Errorf("API call failed: %v", err)
