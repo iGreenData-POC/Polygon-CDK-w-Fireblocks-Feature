@@ -31,6 +31,15 @@ type MessagePayload struct {
 	Data string `json:"data"`
 }
 
+type ResponseData struct {
+	Target struct {
+		Status string `json:"status"`
+		Data   struct {
+			FinalSignature string `json:"finalSignature"`
+		} `json:"data"`
+	} `json:"target"`
+}
+
 // HashToSign returns the accumulated input hash of the sequence.
 // Note that this is equivalent to what happens on the smart contract
 func (s *Sequence) HashToSign() []byte {
@@ -81,12 +90,22 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
+
+	// Unmarshal the response into a struct
+	var responseData ResponseData
+	if err := json.Unmarshal(responseBody, &responseData); err != nil {
+		return "", err
+	}
+
+	// Extract the finalSignature
+	finalSignature := responseData.Target.Data.FinalSignature
+
 	log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
-	log.Infof("Send request to adaptor string(responseBody)5555==========>", string(responseBody))
+	log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
 	if err != nil {
 		return "", err
 	}
-	return string(responseBody), nil
+	return finalSignature, nil
 }
 
 // Sign returns a signed sequence by the private key.
@@ -103,7 +122,7 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	log.Infof("Hex encoding hashToSign===========>", hex.EncodeToString(hashToSign))
 	log.Infof("Created message payload!")
 	//add
-	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
+	signature, err := sendRequestsToAdaptor(context.Background(), "http://10.40.6.18:3000/v1/sign-message", payload)
 	if err != nil {
 		log.Infof("Failed to send message request to adaptor")
 		return nil, err
