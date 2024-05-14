@@ -121,7 +121,7 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
 	log.Infof("Hex encoding hashToSign===========>", hex.EncodeToString(hashToSign))
 	log.Infof("Created message payload!")
 	//add
-	signature, err := sendRequestsToAdaptor(context.Background(), "http://10.40.6.18:3000/v1/sign-message", payload)
+	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
 	if err != nil {
 		log.Infof("Failed to send message request to adaptor")
 		return nil, err
