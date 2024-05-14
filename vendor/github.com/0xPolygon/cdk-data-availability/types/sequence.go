@@ -31,6 +31,15 @@ type MessagePayload struct {
 	Data string `json:"data"`
 }
 
+type ResponseData struct {
+	Target struct {
+		Status string `json:"status"`
+		Data   struct {
+			FinalSignature string `json:"finalSignature"`
+		} `json:"data"`
+	} `json:"target"`
+}
+
 // HashToSign returns the accumulated input hash of the sequence.
 // Note that this is equivalent to what happens on the smart contract
 func (s *Sequence) HashToSign() []byte {
@@ -81,12 +90,22 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
+
+	// Unmarshal the response into a struct
+	var responseData ResponseData
+	if err := json.Unmarshal(responseBody, &responseData); err != nil {
+		return "", err
+	}
+
+	// Extract the finalSignature
+	finalSignature := responseData.Target.Data.FinalSignature
+
 	log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
-	log.Infof("Send request to adaptor string(responseBody)5555==========>", string(responseBody))
+	log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
 	if err != nil {
 		return "", err
 	}
-	return string(responseBody), nil
+	return finalSignature, nil
 }
 
 // Sign returns a signed sequence by the private key.
