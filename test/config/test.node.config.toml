@@ -133,11 +133,10 @@ L1BlockTimestampMargin = "5s"
 MaxTxSizeForL1 = 131072
 L2Coinbase = "0xD44B3b1e21d5F55f5b5Bb050E68218552aa4eAfC"
 FireblocksFeatureEnabled = true
+SenderAddress = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
 	[SequenceSender.StreamClient]
 		Server = "zkevm-sequencer:6900"
-SenderAddress = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
-FireblocksFeatureEnabledTest = true
 
 [Aggregator]
 Host = "0.0.0.0"
