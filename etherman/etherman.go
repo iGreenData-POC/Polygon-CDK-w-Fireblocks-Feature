@@ -1824,6 +1824,12 @@ func (etherMan *Client) LoadAuthFromKeyStore(path, password string) (*bind.Trans
 	return &auth, pk, nil
 }
 
+func (etherMan *Client) LoadAuthForFireblocks(senderAddress string) (*bind.TransactOpts, error) {
+	auth := bind.TransactOpts{From: common.HexToAddress(senderAddress), Context: context.Background()}
+	etherMan.auth[auth.From] = auth
+	return &auth, nil
+}
+
 // newKeyFromKeystore creates an instance of a keystore key from a keystore file
 func newKeyFromKeystore(path, password string) (*keystore.Key, error) {
 	if path == "" && password == "" {

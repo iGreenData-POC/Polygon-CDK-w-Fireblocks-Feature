@@ -31,12 +31,16 @@ type MessagePayload struct {
 	Data string `json:"data"`
 }
 
-type ResponseData struct {
+type FireblocksAdaptorResponse struct {
 	Target struct {
 		Status string `json:"status"`
 		Data   struct {
 			FinalSignature string `json:"finalSignature"`
 		} `json:"data"`
+		Error struct {
+			Message string `json:"message"`
+			Code    string `json:"code"`
+		} `json:"error"`
 	} `json:"target"`
 }
 
@@ -91,19 +95,31 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	// Unmarshal the response into a struct
-	var responseData ResponseData
-	if err := json.Unmarshal(responseBody, &responseData); err != nil {
+	var fireblocksAdaptorResponse FireblocksAdaptorResponse
+	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		return "", err
 	}
 
-	// Extract the finalSignature
-	finalSignature := responseData.Target.Data.FinalSignature
+	var finalSignature string
+	if fireblocksAdaptorResponse.Target.Status == "SUCCESS" {
+		// Extract the finalSignature
+		finalSignature = fireblocksAdaptorResponse.Target.Data.FinalSignature
 
-	log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
-	log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
-	if err != nil {
+		log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
+		log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
+	} else {
+		err := errors.New(fireblocksAdaptorResponse.Target.Error.Message + " : " + fireblocksAdaptorResponse.Target.Error.Code)
+
+		// // Concatenate the error messages
+		// err = fmt.Errorf("%s: %s : %s", err.Error(), fireblocksAdaptorResponse.Target.Error.Message, fireblocksAdaptorResponse.Target.Error.Code)
+
+		// err := err.Error() + (fireblocksAdaptorResponse.Target.Error.Message + " : " + fireblocksAdaptorResponse.Target.Error.Code)
 		return "", err
+		// log.Errorf("Error ", responseBody)
 	}
+	// if err != nil {
+	// 	return "", err
+	// }
 	return finalSignature, nil
 }
 
