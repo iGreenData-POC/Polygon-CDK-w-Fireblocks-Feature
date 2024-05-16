@@ -512,7 +512,7 @@ func createSequenceSender(cfg config.Config, pool *pool.Pool, etmStorage *ethtxm
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Infof("SEQUENCE SENDER CREATION FireblocksFeatureEnabled 11111111111111111111:   ", cfg.SequenceSender.FireblocksFeatureEnabled, " ------ ", cfg.FireblocksFeatureEnabled)
+	log.Infof("SEQUENCE SENDER CREATION FireblocksFeatureEnabled 11111111111111111111:   ", cfg.SequenceSender.FireblocksFeatureEnabled, " ------ ", cfg.FireblocksFeatureEnabled, "-------", cfg.SequenceSender.L2Coinbase, "------", cfg.SequenceSender.FireblocksFeatureEnabledTest)
 	seqSender, err := sequencesender.New(cfg.SequenceSender, st, etherman, ethTxManager, eventLog, da)
 	if err != nil {
 		log.Fatal(err)

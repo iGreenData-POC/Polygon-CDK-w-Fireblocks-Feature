@@ -137,6 +137,7 @@ PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
 		Server = "zkevm-sequencer:6900"
 SenderAddress = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
 FireblocksFeatureEnabled = true
+FireblocksFeatureEnabledTest = true
 
 [Aggregator]
 Host = "0.0.0.0"
