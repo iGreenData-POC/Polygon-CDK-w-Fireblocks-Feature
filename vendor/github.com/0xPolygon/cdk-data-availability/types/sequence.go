@@ -32,16 +32,14 @@ type MessagePayload struct {
 }
 
 type FireblocksAdaptorResponse struct {
-	Target struct {
-		Status string `json:"status"`
-		Data   struct {
-			FinalSignature string `json:"finalSignature"`
-		} `json:"data"`
-		Error struct {
-			Message string `json:"message"`
-			Code    string `json:"code"`
-		} `json:"error"`
-	} `json:"target"`
+	Status string `json:"status"`
+	Data   struct {
+		FinalSignature string `json:"finalSignature"`
+	} `json:"data"`
+	Error struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	} `json:"error"`
 }
 
 // HashToSign returns the accumulated input hash of the sequence.
@@ -102,17 +100,17 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		return "", err
 	}
-	log.Infof("Send request to adaptor resp 555555==========>", fireblocksAdaptorResponse.Target.Status)
+	log.Infof("Send request to adaptor resp 555555==========>", fireblocksAdaptorResponse.Status)
 
 	var finalSignature string
-	if fireblocksAdaptorResponse.Target.Status == "SUCCESS" {
+	if fireblocksAdaptorResponse.Status == "SUCCESS" {
 		// Extract the finalSignature
-		finalSignature = fireblocksAdaptorResponse.Target.Data.FinalSignature
+		finalSignature = fireblocksAdaptorResponse.Data.FinalSignature
 
 		log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
 		log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
 	} else {
-		err := errors.New(fireblocksAdaptorResponse.Target.Error.Message + " : " + fireblocksAdaptorResponse.Target.Error.Code)
+		err := errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
 
 		// // Concatenate the error messages
 		// err = fmt.Errorf("%s: %s : %s", err.Error(), fireblocksAdaptorResponse.Target.Error.Message, fireblocksAdaptorResponse.Target.Error.Code)
