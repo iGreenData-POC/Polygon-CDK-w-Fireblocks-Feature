@@ -85,6 +85,7 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 	// Send the request
 	resp, err := client.Do(req)
 	log.Infof("Send request to adaptor resp 22222==========>", resp)
+
 	if err != nil {
 		fmt.Println("Send request to adaptor error ::::", err)
 		log.Infof("Send request to adaptor error 333333==========>", err)
@@ -94,11 +95,14 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseStr := string(responseBody)
+	log.Infof("Send request to adaptor resp 44444==========>", responseStr)
 	// Unmarshal the response into a struct
 	var fireblocksAdaptorResponse FireblocksAdaptorResponse
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		return "", err
 	}
+	log.Infof("Send request to adaptor resp 555555==========>", fireblocksAdaptorResponse.Target.Status)
 
 	var finalSignature string
 	if fireblocksAdaptorResponse.Target.Status == "SUCCESS" {
