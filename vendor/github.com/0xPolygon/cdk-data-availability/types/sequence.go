@@ -8,9 +8,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/0xPolygon/cdk-data-availability/log"
@@ -67,166 +68,144 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 	// Marshal the payload into JSON
 	jsonData, err := json.Marshal(payload)
-	log.Infof("Send request to adaptor jsonData 00000==========>", jsonData)
 	if err != nil {
+		log.Errorf("Failed to marshal payload: %v", err)
 		return "", err
 	}
 
 	// Create the POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
+		log.Errorf("Failed to create request: %v", err)
 		return "", err
 	}
-	req.Header.Set("Content-Type", "application/json") // Set header to application/json
-	log.Infof("Send request to adaptor req 11111==========>", req)
+	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
 	resp, err := client.Do(req)
-	log.Infof("Send request to adaptor resp 22222==========>", resp)
-
 	if err != nil {
-		fmt.Println("Send request to adaptor error ::::", err)
-		log.Infof("Send request to adaptor error 333333==========>", err)
+		log.Errorf("Request failed: %v", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
-	responseStr := string(responseBody)
-	log.Infof("Send request to adaptor resp 44444==========>", responseStr)
+	if err != nil {
+		log.Errorf("Failed to read response body: %v", err)
+		return "", err
+	}
+
 	// Unmarshal the response into a struct
 	var fireblocksAdaptorResponse FireblocksAdaptorResponse
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
+		log.Errorf("Failed to unmarshal response: %v", err)
 		return "", err
 	}
-	log.Infof("Send request to adaptor resp 555555==========>", fireblocksAdaptorResponse.Status)
 
-	var finalSignature string
+	// Check the response status and extract finalSignature if successful
 	if fireblocksAdaptorResponse.Status == "SUCCESS" {
-		// Extract the finalSignature
-		finalSignature = fireblocksAdaptorResponse.Data.FinalSignature
-
-		log.Infof("Send request to adaptor responseBody 4444==========>", responseBody)
-		log.Infof("Send request to adaptor finalSignature 5555==========>", finalSignature)
-	} else {
-		err := errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
-
-		// // Concatenate the error messages
-		// err = fmt.Errorf("%s: %s : %s", err.Error(), fireblocksAdaptorResponse.Target.Error.Message, fireblocksAdaptorResponse.Target.Error.Code)
-
-		// err := err.Error() + (fireblocksAdaptorResponse.Target.Error.Message + " : " + fireblocksAdaptorResponse.Target.Error.Code)
-		return "", err
-		// log.Errorf("Error ", responseBody)
+		finalSignature := fireblocksAdaptorResponse.Data.FinalSignature
+		log.Infof("Received finalSignature: %s", finalSignature)
+		return finalSignature, nil
 	}
-	// if err != nil {
-	// 	return "", err
-	// }
-	return finalSignature, nil
+
+	// Handle error response
+	err = errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
+	log.Errorf("Adaptor error: %v", err)
+	return "", err
 }
 
 // Sign returns a signed sequence by the private key.
 // Note that what's being signed is the accumulated input hash
-func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey) (*SignedSequence, error) {
+func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey, fireblocksFeatureEnabled bool) (*SignedSequence, error) {
 	log.Infof("Inside sequence.go Sign function!")
-
 	hashToSign := s.HashToSign()
-	log.Infof("Creating hashToSign==========>", hashToSign)
 
+	var signature []byte
+	var err error
+
+	if fireblocksFeatureEnabled {
+		signature, err = signWithAdaptor(hashToSign)
+		if err != nil {
+			log.Infof("Failed to send message request to adaptor: %v", err)
+			return nil, err
+		}
+	} else {
+		signature, err = signWithPrivateKey(hashToSign, privateKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	finalSignature, err := processSignature(signature, fireblocksFeatureEnabled)
+	if err != nil {
+		log.Infof("Failed to process signature: %v", err)
+		return nil, err
+	}
+
+	return &SignedSequence{
+		Sequence:  *s,
+		Signature: finalSignature,
+	}, nil
+}
+
+func signWithAdaptor(hashToSign []byte) ([]byte, error) {
 	payload := MessagePayload{
 		Data: hex.EncodeToString(hashToSign),
 	}
-	log.Infof("Hex encoding hashToSign===========>", hex.EncodeToString(hashToSign))
-	log.Infof("Created message payload!")
-	//add
 	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
 	if err != nil {
-		log.Infof("Failed to send message request to adaptor")
 		return nil, err
 	}
-	log.Infof("Signature message from adaptor!", signature)
-	/*sig, err := crypto.Sign(hashToSign, privateKey)
-	if err != nil {
-		return nil, err
-	}*/
-	trimmedSignature := signature[2:]
-	log.Infof("TrimmedSignature message from adaptor!", trimmedSignature)
 
+	trimmedSignature := signature[2:]
 	sig, err := hex.DecodeString(trimmedSignature)
 	if err != nil {
-		log.Infof("Failed to decode signature!", err)
+		return nil, err
 	}
-	log.Infof("The Decoded signature is:", sig)
 
-	///////
+	log.Infof("Trimmed and decoded signature from adaptor: %x", sig)
+	return sig, nil
+}
 
-	firstHash := s.HashToSign()
-	log.Infof("Creating firstHash============>", firstHash)
-
-	message := hex.EncodeToString(firstHash)
-	log.Infof("Hex encoding firstHash===========>", message)
-
-	wrappedMessage := "\x19Ethereum Signed Message:\n" +
-		string(rune(len(message))) +
-		message
-
-	// Calculate the hash of the wrapped message
-	hash := sha256.Sum256([]byte(wrappedMessage))
-
-	// Calculate the hash of the hash
-	contentHash := sha256.Sum256(hash[:])
-
-	mySig := make([]byte, 65)
-	copy(mySig, sig)
-	mySig[64] -= 27
-
-	pubKey, err := crypto.SigToPub(contentHash[:], mySig)
+func signWithPrivateKey(hashToSign []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	sig, err := crypto.Sign(hashToSign, privateKey)
 	if err != nil {
-		fmt.Println("error recovering pub key", err)
+		return nil, err
 	}
-	val := crypto.PubkeyToAddress(*pubKey)
+	return sig, nil
+}
 
-	fmt.Println("recovered address is:", val.String())
+func processSignature(sig []byte, fireblocksFeatureEnabled bool) ([]byte, error) {
 	rBytes := sig[:32]
-	log.Infof("The Decoded r value is:", string(rBytes))
 	sBytes := sig[32:64]
-	log.Infof("The Decoded s value is:", string(sBytes))
 	vByte := sig[64]
-	log.Infof("The Decoded v value is:", string(vByte))
 
-	// if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
-	// 	log.Infof("Inside  strings.ToUpper(common.Bytes2Hex(sBytes))message from adaptor!")
-	// 	magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
-	// 	sBig := big.NewInt(0).SetBytes(sBytes)
-	// 	magicBig := big.NewInt(0).SetBytes(magicNumber)
-	// 	s1 := magicBig.Sub(magicBig, sBig)
-	// 	sBytes = s1.Bytes()
-	// 	if vByte == 0 {
-	// 		vByte = 1
-	// 	} else {
-	// 		vByte = 0
-	// 	}
-	// }
-	// // vByte += 27
+	if strings.ToUpper(common.Bytes2Hex(sBytes)) > "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0" {
+		magicNumber := common.Hex2Bytes("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
+		sBig := big.NewInt(0).SetBytes(sBytes)
+		magicBig := big.NewInt(0).SetBytes(magicNumber)
+		s1 := magicBig.Sub(magicBig, sBig)
+		sBytes = s1.Bytes()
+		if vByte == 0 {
+			vByte = 1
+		} else {
+			vByte = 0
+		}
+	}
+
+	if !fireblocksFeatureEnabled {
+		vByte += 27
+	}
 
 	actualSignature := []byte{}
 	actualSignature = append(actualSignature, rBytes...)
 	actualSignature = append(actualSignature, sBytes...)
 	actualSignature = append(actualSignature, vByte)
-	log.Infof("The Decoded v value is hex.EncodeToString(sig):", hex.EncodeToString(sig))
-	log.Infof("The Decoded v value is hex.EncodeToString(actualSignature):", hex.EncodeToString(actualSignature))
 
-	// log.Infof("ActualSignature message from adaptor!", actualSignature)
-
-	// test := &SignedSequence{
-	// 	Sequence:  *s,
-	// 	Signature: actualSignature,
-	// }
-
-	return &SignedSequence{
-		Sequence:  *s,
-		Signature: actualSignature,
-	}, nil
+	log.Infof("Processed signature: %x", actualSignature)
+	return actualSignature, nil
 }
 
 // OffChainData returns the data that needs to be stored off chain from a given sequence

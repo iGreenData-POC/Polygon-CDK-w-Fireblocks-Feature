@@ -2,7 +2,6 @@ package datacommittee
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -139,7 +138,7 @@ type signatureMsg struct {
 
 // PostSequence sends the sequence data to the data availability backend, and returns the dataAvailabilityMessage
 // as expected by the contract
-func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte) ([]byte, error) {
+func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte, fireblocksFeatureEnabled bool) ([]byte, error) {
 	// Get current committee
 	committee, err := s.getCurrentDataCommittee()
 	if err != nil {
@@ -151,8 +150,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	for _, seq := range batchesData {
 		sequence = append(sequence, seq)
 	}
-	signedSequence, err := sequence.Sign(s.privKey)
-	log.Infof("The returned is hex.EncodeToString(sig):", hex.EncodeToString(signedSequence.Signature))
+	signedSequence, err := sequence.Sign(s.privKey, fireblocksFeatureEnabled)
 	if err != nil {
 		return nil, err
 	}

@@ -202,7 +202,7 @@ func (s *SequenceSender) tryToSendSequence(ctx context.Context) {
 	}
 
 	// add sequence to be monitored
-	dataAvailabilityMessage, err := s.da.PostSequence(ctx, sequences)
+	dataAvailabilityMessage, err := s.da.PostSequence(ctx, sequences, s.cfg.FireblocksFeatureEnabled)
 	if err != nil {
 		log.Error("error posting sequences to the data availability protocol: ", err)
 		return
