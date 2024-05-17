@@ -159,7 +159,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	ch := make(chan signatureMsg, len(committee.Members))
 	signatureCtx, cancelSignatureCollection := context.WithCancel(ctx)
 	for _, member := range committee.Members {
-		go requestSignatureFromMember(signatureCtx, *signedSequence, member, ch)
+		go requestSignatureFromMember(signatureCtx, *signedSequence, member, ch, fireblocksFeatureEnabled)
 	}
 
 	// Collect signatures
@@ -190,7 +190,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	return buildSignaturesAndAddrs(signatureMsgs(msgs), committee.Members), nil
 }
 
-func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.SignedSequence, member DataCommitteeMember, ch chan signatureMsg) {
+func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.SignedSequence, member DataCommitteeMember, ch chan signatureMsg, fireblocksFeatureEnabled bool) {
 	// request
 	c := client.New(member.URL)
 	log.Infof("sending request to sign the sequence to %s at %s", member.Addr.Hex(), member.URL)
@@ -204,7 +204,7 @@ func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.Sign
 	}
 	// verify returned signature
 	signedSequence.Signature = signature
-	signer, err := signedSequence.Signer()
+	signer, err := signedSequence.Signer(fireblocksFeatureEnabled)
 	if err != nil {
 		ch <- signatureMsg{
 			addr: member.Addr,

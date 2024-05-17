@@ -381,7 +381,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	var signedTx *types.Transaction
 	logger.Infof("monitorTx=======000000====confirmed==>", confirmed)
 	var txHashStr string
-	var featureEnabled bool
+	fireblocksFeatureEnabled := c.cfg.FireblocksFeatureEnabled
+
 	if !confirmed {
 
 		// if is a reorged, move to the next
@@ -403,14 +404,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			}
 		}
 
-		featureEnabled = true
-
 		// rebuild transaction
 		tx := mTx.Tx()
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
 		logger.Infof("Tx hash =======0000000========>", tx.Hash().String())
 
-		if !featureEnabled {
+		if !fireblocksFeatureEnabled {
 			// sign tx
 			signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
 			if err != nil {
@@ -443,7 +442,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 
-			if !featureEnabled {
+			if !fireblocksFeatureEnabled {
 				logger.Infof("sending transaction to network------------")
 				err := c.etherman.SendTx(ctx, signedTx)
 				if err != nil {
@@ -494,7 +493,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		log.Infof("waiting transaction to be mined...")
 
 		// wait tx to get mined
-		if featureEnabled {
+		if fireblocksFeatureEnabled {
 			logger.Infof("WaitTxToBeMinedFireblocks------------")
 			confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
 		} else {
