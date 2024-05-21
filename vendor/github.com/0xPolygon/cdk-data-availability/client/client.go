@@ -48,7 +48,7 @@ func New(url string) Client {
 
 // SignSequence sends a request to sign the given sequence by the data committee member
 // if successful returns the signature. The signature should be validated after using this method!
-func (c *client) SignSequence(signedSequence types.SignedSequence) ([]byte, error) {
+func (c *client) SignSequence(signedSequence types.SignedSequence, fireblocksFeatureEnabled bool) ([]byte, error) {
 	response, err := rpc.JSONRPCCall(c.url, "datacom_signSequence", signedSequence)
 	if err != nil {
 		return nil, err
