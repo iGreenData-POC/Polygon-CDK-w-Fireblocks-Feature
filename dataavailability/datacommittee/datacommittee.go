@@ -194,7 +194,7 @@ func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.Sign
 	// request
 	c := client.New(member.URL)
 	log.Infof("sending request to sign the sequence to %s at %s", member.Addr.Hex(), member.URL)
-	signature, err := c.SignSequence(signedSequence)
+	signature, err := c.SignSequence(signedSequence, fireblocksFeatureEnabled)
 	if err != nil {
 		ch <- signatureMsg{
 			addr: member.Addr,

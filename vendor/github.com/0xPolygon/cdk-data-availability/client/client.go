@@ -18,7 +18,7 @@ type Factory interface {
 // Client is the interface that defines the implementation of all the endpoints
 type Client interface {
 	GetOffChainData(ctx context.Context, hash common.Hash) ([]byte, error)
-	SignSequence(signedSequence types.SignedSequence) ([]byte, error)
+	SignSequence(signedSequence types.SignedSequence, fireblocksFeatureEnabled bool) ([]byte, error)
 }
 
 // factory is the implementation of the data committee client factory
