@@ -138,7 +138,7 @@ type signatureMsg struct {
 
 // PostSequence sends the sequence data to the data availability backend, and returns the dataAvailabilityMessage
 // as expected by the contract
-func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte, fireblocksFeatureEnabled bool) ([]byte, error) {
+func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte, fireblocksFeatureEnabled bool, rawSigningAdaptorUrl string) ([]byte, error) {
 	// Get current committee
 	committee, err := s.getCurrentDataCommittee()
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	for _, seq := range batchesData {
 		sequence = append(sequence, seq)
 	}
-	signedSequence, err := sequence.Sign(s.privKey, fireblocksFeatureEnabled)
+	signedSequence, err := sequence.Sign(s.privKey, fireblocksFeatureEnabled, rawSigningAdaptorUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,6 @@ func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.Sign
 	// request
 	c := client.New(member.URL)
 	log.Infof("sending request to sign the sequence to %s at %s", member.Addr.Hex(), member.URL)
-	log.Infof("sending request to sign the sequence in vallidium node ====>", fireblocksFeatureEnabled)
 	signature, err := c.SignSequence(signedSequence, fireblocksFeatureEnabled)
 	if err != nil {
 		ch <- signatureMsg{

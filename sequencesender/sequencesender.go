@@ -202,8 +202,7 @@ func (s *SequenceSender) tryToSendSequence(ctx context.Context) {
 	}
 
 	// add sequence to be monitored
-	log.Infof("Sequence Sender FireblocksFeatureEnabled 00000000000000000000000: ", s.cfg.FireblocksFeatureEnabled)
-	dataAvailabilityMessage, err := s.da.PostSequence(ctx, sequences, s.cfg.FireblocksFeatureEnabled)
+	dataAvailabilityMessage, err := s.da.PostSequence(ctx, sequences, s.cfg.FireblocksFeatureEnabled, s.cfg.FireblocksAdaptorRawSigningUrl)
 	if err != nil {
 		log.Error("error posting sequences to the data availability protocol: ", err)
 		return

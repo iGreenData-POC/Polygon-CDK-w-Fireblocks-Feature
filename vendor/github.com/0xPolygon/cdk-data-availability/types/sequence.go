@@ -118,15 +118,15 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload MessagePaylo
 
 // Sign returns a signed sequence by the private key.
 // Note that what's being signed is the accumulated input hash
-func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey, fireblocksFeatureEnabled bool) (*SignedSequence, error) {
-	log.Infof("Inside sequence.go Sign function!=====> ", fireblocksFeatureEnabled)
+func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey, fireblocksFeatureEnabled bool, rawSigningAdaptorUrl string) (*SignedSequence, error) {
+	log.Infof("Inside sequence.go Sign function!")
 	hashToSign := s.HashToSign()
 
 	var signature []byte
 	var err error
 
 	if fireblocksFeatureEnabled {
-		signature, err = signWithAdaptor(hashToSign)
+		signature, err = signWithAdaptor(hashToSign, rawSigningAdaptorUrl)
 		if err != nil {
 			log.Infof("Failed to send message request to adaptor: %v", err)
 			return nil, err
@@ -150,11 +150,11 @@ func (s *Sequence) Sign(privateKey *ecdsa.PrivateKey, fireblocksFeatureEnabled b
 	}, nil
 }
 
-func signWithAdaptor(hashToSign []byte) ([]byte, error) {
+func signWithAdaptor(hashToSign []byte, rawSigningAdaptorUrl string) ([]byte, error) {
 	payload := MessagePayload{
 		Data: hex.EncodeToString(hashToSign),
 	}
-	signature, err := sendRequestsToAdaptor(context.Background(), "http://34.136.253.25:3000/v1/sign-message", payload)
+	signature, err := sendRequestsToAdaptor(context.Background(), rawSigningAdaptorUrl, payload)
 	if err != nil {
 		return nil, err
 	}

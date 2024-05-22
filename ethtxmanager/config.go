@@ -49,5 +49,6 @@ type Config struct {
 	// tx gas price = 110
 	MaxGasPriceLimit uint64 `mapstructure:"MaxGasPriceLimit"`
 
-	FireblocksFeatureEnabled bool `mapstructure:"FireblocksFeatureEnabled"`
+	FireblocksFeatureEnabled           bool   `mapstructure:"FireblocksFeatureEnabled"`
+	FireblocksAdaptorRawTransactionUrl string `mapstructure:"FireblocksAdaptorRawTransactionUrl"`
 }
