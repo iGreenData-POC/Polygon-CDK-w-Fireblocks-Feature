@@ -133,7 +133,7 @@ L1BlockTimestampMargin = "5s"
 MaxTxSizeForL1 = 131072
 L2Coinbase = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
 FireblocksFeatureEnabled = true
-FireblocksAdaptorRawSigningUrl=http://34.136.253.25:3000/v1/sign-message
+FireblocksAdaptorRawSigningUrl="http://34.136.253.25:3000/v1/sign-message"
 SenderAddress = "0x3338E5e5CA534c6b9b224Fa9a8621274b4719641"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
 	[SequenceSender.StreamClient]
@@ -161,7 +161,7 @@ FireblocksFeatureEnabled = true
 [EthTxManager]
 ForcedGas = 0
 FireblocksFeatureEnabled = true
-FireblocksAdaptorRawTransactionUrl=http://10.40.6.18:3000/v1/transaction
+FireblocksAdaptorRawTransactionUrl="http://10.40.6.18:3000/v1/transaction"
 PrivateKeys = [
 	{Path = "/pk/sequencer.keystore", Password = "password"},
 	{Path = "/pk/aggregator.keystore", Password = "password"}
