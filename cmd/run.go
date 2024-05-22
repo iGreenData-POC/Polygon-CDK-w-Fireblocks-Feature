@@ -113,9 +113,7 @@ func start(cliCtx *cli.Context) error {
 	}
 
 	// READ CHAIN ID FROM POE SC
-	log.Info("1===> creating new client")
 	tmpEthMan, err := etherman.NewClient(c.Etherman, c.NetworkConfig.L1Config, nil)
-	log.Info("2===> new client created")
 
 	if err != nil {
 		log.Fatal(err)
