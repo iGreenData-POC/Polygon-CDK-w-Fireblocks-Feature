@@ -64,6 +64,17 @@ type TransactionPayload struct {
 	FbRawSigning    bool   `json:"fbRawSigning"`
 }
 
+type FireblocksAdaptorResponse struct {
+	Status string `json:"status"`
+	Data   struct {
+		TransactionHash string `json:"transactionHash"`
+	} `json:"data"`
+	Error struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	} `json:"error"`
+}
+
 // New creates new eth tx manager
 func New(cfg Config, ethMan ethermanInterface, storage storageInterface, state stateInterface) *Client {
 	c := &Client{
@@ -379,9 +390,10 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 
 	var signedTx *types.Transaction
-	logger.Infof("monitorTx=======000000====confirmed==>", confirmed)
 	var txHashStr string
-	var featureEnabled bool
+	fireblocksFeatureEnabled := c.cfg.FireblocksFeatureEnabled
+	fireblocksAdaptorRawTransactionUrl := c.cfg.FireblocksAdaptorRawTransactionUrl
+
 	if !confirmed {
 
 		// if is a reorged, move to the next
@@ -403,14 +415,11 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 			}
 		}
 
-		featureEnabled = true
-
 		// rebuild transaction
 		tx := mTx.Tx()
 		logger.Debugf("unsigned tx %v created", tx.Hash().String())
-		logger.Infof("Tx hash =======0000000========>", tx.Hash().String())
 
-		if !featureEnabled {
+		if !fireblocksFeatureEnabled {
 			// sign tx
 			signedTx, err = c.etherman.SignTx(ctx, mTx.from, tx)
 			if err != nil {
@@ -443,7 +452,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 
-			if !featureEnabled {
+			if !fireblocksFeatureEnabled {
 				logger.Infof("sending transaction to network------------")
 				err := c.etherman.SendTx(ctx, signedTx)
 				if err != nil {
@@ -464,14 +473,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					FbRawSigning:    true,
 				}
 
-				txHashStr, err = sendRequestsToAdaptor(ctx, "http://10.40.6.18:3000/v1/transaction", payload)
+				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload)
 
 				if err != nil {
 					logger.Errorf("API call failed: %v", err)
 					return
 				}
-
-				logger.Infof("API response 111111111=========>: %s", txHashStr)
 
 				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
 			}
@@ -494,7 +501,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		log.Infof("waiting transaction to be mined...")
 
 		// wait tx to get mined
-		if featureEnabled {
+		if fireblocksFeatureEnabled {
 			logger.Infof("WaitTxToBeMinedFireblocks------------")
 			confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
 		} else {
@@ -520,39 +527,30 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		}
 
 		lastReceiptChecked = *txReceipt
-		log.Infof("lastReceiptChecked================>...", lastReceiptChecked)
 	}
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
-		log.Infof("Transaction completed =========111111======>", txHashStr)
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
-		log.Infof("Transaction completed---------111111---receiptBlockNum-->", receiptBlockNum)
 
 		// check if state is already synchronized until the block
 		// where the tx was mined
 		block, err := c.state.GetLastBlock(ctx, nil)
-		log.Infof("Transaction completed---------111111---block-->", block)
 		if errors.Is(err, state.ErrStateNotSynchronized) {
-			log.Infof("Transaction completed---------222222----->")
 			logger.Debugf("state not synchronized yet, waiting for L1 block %v to be synced", receiptBlockNum)
 			return
 		} else if err != nil {
-			log.Infof("Transaction completed---------333333----->")
 			logger.Errorf("failed to check if L1 block %v is already synced: %v", receiptBlockNum, err)
 			return
 		} else if block.BlockNumber < receiptBlockNum {
-			log.Infof("Transaction completed---------44444----->")
 			logger.Debugf("L1 block %v not synchronized yet, waiting for L1 block to be synced in order to confirm monitored tx", receiptBlockNum)
 			return
 		} else {
-			log.Infof("Transaction completed---------55555----->")
 			mTx.status = MonitoredTxStatusConfirmed
 			mTx.blockNumber = lastReceiptChecked.BlockNumber
 			logger.Info("confirmed")
 		}
 	} else {
-		log.Infof("Transaction failed =========111111======>", txHashStr)
 		// if we should continue to monitor, we move to the next one and this will
 		// be reviewed in the next monitoring cycle
 		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
@@ -566,9 +564,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// update monitored tx changes into storage
 	err = c.storage.Update(ctx, mTx, nil)
-	log.Infof("Transaction updated---------11111----->")
 	if err != nil {
-		log.Infof("Transaction update failed =========111111======>", txHashStr)
 		logger.Errorf("failed to update monitored tx: %v", err)
 		return
 	}
@@ -605,7 +601,24 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return "", err
 	}
 
-	return string(responseBody), nil
+	// Unmarshal the response into a struct
+	var fireblocksAdaptorResponse FireblocksAdaptorResponse
+	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
+		log.Errorf("Failed to unmarshal response: %v", err)
+		return "", err
+	}
+
+	// Check the response status and extract finalSignature if successful
+	if fireblocksAdaptorResponse.Status == "SUCCESS" {
+		transactionHash := fireblocksAdaptorResponse.Data.TransactionHash
+		log.Infof("Received transaction hash: %s", transactionHash)
+		return transactionHash, nil
+	}
+
+	// Handle error response
+	err = errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
+	log.Errorf("Adaptor error: %v", err)
+	return "", err
 }
 
 // shouldContinueToMonitorThisTx checks the the tx receipt and decides if it should

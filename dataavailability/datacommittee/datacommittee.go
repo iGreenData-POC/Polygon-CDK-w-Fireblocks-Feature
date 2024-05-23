@@ -2,7 +2,6 @@ package datacommittee
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -139,7 +138,7 @@ type signatureMsg struct {
 
 // PostSequence sends the sequence data to the data availability backend, and returns the dataAvailabilityMessage
 // as expected by the contract
-func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte) ([]byte, error) {
+func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][]byte, fireblocksFeatureEnabled bool, rawSigningAdaptorUrl string) ([]byte, error) {
 	// Get current committee
 	committee, err := s.getCurrentDataCommittee()
 	if err != nil {
@@ -151,8 +150,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	for _, seq := range batchesData {
 		sequence = append(sequence, seq)
 	}
-	signedSequence, err := sequence.Sign(s.privKey)
-	log.Infof("The returned is hex.EncodeToString(sig):", hex.EncodeToString(signedSequence.Signature))
+	signedSequence, err := sequence.Sign(s.privKey, fireblocksFeatureEnabled, rawSigningAdaptorUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +159,7 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	ch := make(chan signatureMsg, len(committee.Members))
 	signatureCtx, cancelSignatureCollection := context.WithCancel(ctx)
 	for _, member := range committee.Members {
-		go requestSignatureFromMember(signatureCtx, *signedSequence, member, ch)
+		go requestSignatureFromMember(signatureCtx, *signedSequence, member, ch, fireblocksFeatureEnabled, rawSigningAdaptorUrl)
 	}
 
 	// Collect signatures
@@ -192,11 +190,11 @@ func (s *DataCommitteeBackend) PostSequence(ctx context.Context, batchesData [][
 	return buildSignaturesAndAddrs(signatureMsgs(msgs), committee.Members), nil
 }
 
-func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.SignedSequence, member DataCommitteeMember, ch chan signatureMsg) {
+func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.SignedSequence, member DataCommitteeMember, ch chan signatureMsg, fireblocksFeatureEnabled bool, rawSigningAdaptorUrl string) {
 	// request
 	c := client.New(member.URL)
 	log.Infof("sending request to sign the sequence to %s at %s", member.Addr.Hex(), member.URL)
-	signature, err := c.SignSequence(signedSequence)
+	signature, err := c.SignSequence(signedSequence, fireblocksFeatureEnabled, rawSigningAdaptorUrl)
 	if err != nil {
 		ch <- signatureMsg{
 			addr: member.Addr,
@@ -206,7 +204,7 @@ func requestSignatureFromMember(ctx context.Context, signedSequence daTypes.Sign
 	}
 	// verify returned signature
 	signedSequence.Signature = signature
-	signer, err := signedSequence.Signer()
+	signer, err := signedSequence.Signer(fireblocksFeatureEnabled)
 	if err != nil {
 		ch <- signatureMsg{
 			addr: member.Addr,

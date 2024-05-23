@@ -113,9 +113,7 @@ func start(cliCtx *cli.Context) error {
 	}
 
 	// READ CHAIN ID FROM POE SC
-	log.Info("1===> creating new client")
-        tmpEthMan, err := etherman.NewClient(c.Etherman, c.NetworkConfig.L1Config, nil)
-        log.Info("2===> new client created")
+	tmpEthMan, err := etherman.NewClient(c.Etherman, c.NetworkConfig.L1Config, nil)
 
 	if err != nil {
 		log.Fatal(err)
@@ -335,7 +333,7 @@ func newDataAvailability(c config.Config, st *state.State, etherman *etherman.Cl
 			pk  *ecdsa.PrivateKey
 			err error
 		)
-		if isSequenceSender {
+		if isSequenceSender && !c.FireblocksFeatureEnabled {
 			_, pk, err = etherman.LoadAuthFromKeyStore(c.SequenceSender.PrivateKey.Path, c.SequenceSender.PrivateKey.Password)
 			if err != nil {
 				return nil, err
@@ -496,11 +494,13 @@ func createSequenceSender(cfg config.Config, pool *pool.Pool, etmStorage *ethtxm
 		log.Fatal(err)
 	}
 
-	auth, _, err := etherman.LoadAuthFromKeyStore(cfg.SequenceSender.PrivateKey.Path, cfg.SequenceSender.PrivateKey.Password)
-	if err != nil {
-		log.Fatal(err)
+	if !cfg.FireblocksFeatureEnabled {
+		auth, _, err := etherman.LoadAuthFromKeyStore(cfg.SequenceSender.PrivateKey.Path, cfg.SequenceSender.PrivateKey.Password)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cfg.SequenceSender.SenderAddress = auth.From
 	}
-	cfg.SequenceSender.SenderAddress = auth.From
 
 	cfg.SequenceSender.ForkUpgradeBatchNumber = cfg.ForkUpgradeBatchNumber
 
@@ -510,7 +510,6 @@ func createSequenceSender(cfg config.Config, pool *pool.Pool, etmStorage *ethtxm
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	seqSender, err := sequencesender.New(cfg.SequenceSender, st, etherman, ethTxManager, eventLog, da)
 	if err != nil {
 		log.Fatal(err)
@@ -530,9 +529,11 @@ func runAggregator(ctx context.Context, c aggregator.Config, etherman *etherman.
 		aggCli = agglayerClient.New(c.AggLayerURL)
 
 		// Load private key
-		pk, err = config.NewKeyFromKeystore(c.SequencerPrivateKey)
-		if err != nil {
-			log.Fatal(err)
+		if !c.FireblocksFeatureEnabled {
+			pk, err = config.NewKeyFromKeystore(c.SequencerPrivateKey)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
@@ -633,13 +634,20 @@ func createEthTxManager(cfg config.Config, etmStorage *ethtxmanager.PostgresStor
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	for _, privateKey := range cfg.EthTxManager.PrivateKeys {
-		_, _, err := etherman.LoadAuthFromKeyStore(privateKey.Path, privateKey.Password)
+	if !cfg.FireblocksFeatureEnabled {
+		for _, privateKey := range cfg.EthTxManager.PrivateKeys {
+			_, _, err := etherman.LoadAuthFromKeyStore(privateKey.Path, privateKey.Password)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	} else {
+		_, err := etherman.LoadAuthForFireblocks(cfg.SequenceSender.SenderAddress.Hex())
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+
 	etm := ethtxmanager.New(cfg.EthTxManager, etherman, etmStorage, st)
 	return etm
 }

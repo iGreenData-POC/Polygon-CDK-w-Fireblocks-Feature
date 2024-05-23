@@ -121,6 +121,8 @@ type Config struct {
 	HashDB db.Config
 	// State service configuration
 	State state.Config
+
+	FireblocksFeatureEnabled bool `mapstructure:"FireblocksFeatureEnabled"`
 }
 
 // Default parses the default configuration values.
