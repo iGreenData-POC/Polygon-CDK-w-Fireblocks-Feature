@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -236,42 +235,12 @@ func (s *SignedSequence) Signer(fireblocksFeatureEnabled bool) (common.Address, 
 	copy(sig, s.Signature)
 	sig[64] -= 27
 
-	if fireblocksFeatureEnabled {
-		log.Infof("The received signature from sequence sender: %s", hex.EncodeToString(s.Signature))
-
-		// Double hash as per Fireblocks
-		firstHash := s.Sequence.HashToSign()
-		log.Infof("Creating firstHash in DAC: %x", firstHash)
-
-		message := hex.EncodeToString(firstHash)
-		log.Infof("Hex encoding firstHash in DAC: %s", message)
-
-		wrappedMessage := "\x19Ethereum Signed Message:\n" +
-			string(rune(len(message))) +
-			message
-
-		// Calculate the hash of the wrapped message
-		hash := sha256.Sum256([]byte(wrappedMessage))
-
-		// Calculate the hash of the hash
-		contentHash := sha256.Sum256(hash[:])
-
-		log.Infof("Recovering key in DAC")
-
-		pubKey, err := crypto.SigToPub(contentHash[:], sig)
-		if err != nil {
-			log.Infof("Error converting to public key: %v", err)
+	
+	pubKey, err := crypto.SigToPub(s.Sequence.HashToSign(), sig)
+	if err != nil {
 			return common.Address{}, err
 		}
-		val := crypto.PubkeyToAddress(*pubKey)
-		log.Infof("Recovered address in DAC is: %s", val.String())
-
-		return val, nil
-	} else {
-		pubKey, err := crypto.SigToPub(s.Sequence.HashToSign(), sig)
-		if err != nil {
-			return common.Address{}, err
-		}
+		
 		return crypto.PubkeyToAddress(*pubKey), nil
-	}
+	
 }
