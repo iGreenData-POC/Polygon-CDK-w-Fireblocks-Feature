@@ -12,6 +12,7 @@ import (
 	"github.com/0xPolygonHermez/zkevm-node/log"
 	"github.com/0xPolygonHermez/zkevm-node/sequencer/metrics"
 	"github.com/0xPolygonHermez/zkevm-node/state"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -90,6 +91,7 @@ func (s *SequenceSender) marginTimeElapsed(ctx context.Context, l2BlockTimestamp
 
 func (s *SequenceSender) tryToSendSequence(ctx context.Context) {
 	retry := false
+	var err error
 	// process monitored sequences before starting a next cycle
 	s.ethTxManager.ProcessPendingMonitoredTxs(ctx, ethTxManagerOwner, func(result ethtxmanager.MonitoredTxResult, dbTx pgx.Tx) {
 		if result.Status == ethtxmanager.MonitoredTxStatusFailed {
@@ -207,7 +209,14 @@ func (s *SequenceSender) tryToSendSequence(ctx context.Context) {
 		log.Error("error posting sequences to the data availability protocol: ", err)
 		return
 	}
-	to, data, err := s.etherman.BuildSequenceBatchesTxData(s.cfg.SenderAddress, sequences, s.cfg.L2Coinbase, dataAvailabilityMessage)
+	var to *common.Address
+	var data []byte
+
+	if s.cfg.FireblocksFeatureEnabled {
+
+	} else {
+		to, data, err = s.etherman.BuildSequenceBatchesTxData(s.cfg.SenderAddress, sequences, s.cfg.L2Coinbase, dataAvailabilityMessage)
+	}
 	if err != nil {
 		log.Error("error estimating new sequenceBatches to add to eth tx manager: ", err)
 		return
