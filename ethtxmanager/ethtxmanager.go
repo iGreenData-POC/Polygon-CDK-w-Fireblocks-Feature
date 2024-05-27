@@ -473,7 +473,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					FbRawSigning:    true,
 				}
 
-				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger*log.Logger)
+				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger)
 
 				if err != nil {
 					logger.Errorf("API call failed: %v", err)
