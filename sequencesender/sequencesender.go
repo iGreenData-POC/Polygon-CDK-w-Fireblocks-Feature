@@ -213,7 +213,7 @@ func (s *SequenceSender) tryToSendSequence(ctx context.Context) {
 	var data []byte
 
 	if s.cfg.FireblocksFeatureEnabled {
-
+		to, data, err = s.etherman.BuildSequenceBatchesTxDataFireblocks(sequences, s.cfg.L2Coinbase, dataAvailabilityMessage)
 	} else {
 		to, data, err = s.etherman.BuildSequenceBatchesTxData(s.cfg.SenderAddress, sequences, s.cfg.L2Coinbase, dataAvailabilityMessage)
 	}
