@@ -473,7 +473,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					FbRawSigning:    true,
 				}
 
-				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload)
+				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger*log.Logger)
 
 				if err != nil {
 					logger.Errorf("API call failed: %v", err)
@@ -570,22 +570,26 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	}
 }
 
-func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload) (string, error) {
+func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload, logger *log.Logger) (string, error) {
+	logger.Info("--------------sendRequestsToAdaptor 1111111--------------")
 	client := &http.Client{
-		Timeout: time.Second * 10, // Set a timeout for the request
+		Timeout: time.Second * 60, // Set a timeout for the request
 	}
 
+	logger.Info("--------------sendRequestsToAdaptor 22222--------------")
 	// Marshal the payload into JSON
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
 
+	logger.Info("--------------sendRequestsToAdaptor 33333--------------")
 	// Create the POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
+	logger.Info("--------------sendRequestsToAdaptor 4444444--------------")
 	req.Header.Set("Content-Type", "application/json") // Set header to application/json
 
 	// Send the request
@@ -594,6 +598,7 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return "", err
 	}
 	defer resp.Body.Close()
+	logger.Info("--------------sendRequestsToAdaptor 555555--------------")
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
@@ -601,12 +606,14 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return "", err
 	}
 
+	logger.Info("--------------sendRequestsToAdaptor 666666--------------")
 	// Unmarshal the response into a struct
 	var fireblocksAdaptorResponse FireblocksAdaptorResponse
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		log.Errorf("Failed to unmarshal response: %v", err)
 		return "", err
 	}
+	logger.Info("--------------sendRequestsToAdaptor 777777--------------")
 
 	// Check the response status and extract finalSignature if successful
 	if fireblocksAdaptorResponse.Status == "SUCCESS" {
@@ -615,6 +622,7 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return transactionHash, nil
 	}
 
+	logger.Info("--------------sendRequestsToAdaptor 888888--------------")
 	// Handle error response
 	err = errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
 	log.Errorf("Adaptor error: %v", err)
