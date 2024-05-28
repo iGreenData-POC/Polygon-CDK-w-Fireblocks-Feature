@@ -468,7 +468,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					FbRawSigning:    true,
 				}
 
-				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger)
+				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload)
 
 				if err != nil {
 					logger.Errorf("API call failed: %v", err)
@@ -565,7 +565,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	}
 }
 
-func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload, logger *log.Logger) (string, error) {
+func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload) (string, error) {
 	client := &http.Client{
 		Timeout: time.Second * 60, // Set a timeout for the request
 	}
