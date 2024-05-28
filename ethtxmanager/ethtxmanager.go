@@ -317,15 +317,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
 	for txHash := range mTx.history {
-		logger.Infof("monitorTx====inside for loop===000000======>")
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
-			logger.Infof("monitorTx====inside for loop===000000===error===>")
 			logger.Errorf("failed to check if tx %v was mined: %v", txHash.String(), err)
 			continue
 		}
 
-		logger.Infof("monitorTx====inside for loop===000000===mined===>", mined)
 		// if the tx is not mined yet, check that not all the tx were mined and go to the next
 		if !mined {
 			allHistoryTxsWereMined = false
@@ -334,8 +331,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		lastReceiptChecked = *receipt
 
-		logger.Infof("monitorTx====lastReceiptChecked.Status===000000======>", lastReceiptChecked.Status)
-		logger.Infof("monitorTx====types.ReceiptStatusSuccessful===000000======>", types.ReceiptStatusSuccessful)
 		// if the tx was mined successfully we can set it as confirmed and break the loop
 		if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 			confirmed = true
@@ -571,25 +566,21 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 }
 
 func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload, logger *log.Logger) (string, error) {
-	logger.Info("--------------sendRequestsToAdaptor 1111111--------------")
 	client := &http.Client{
 		Timeout: time.Second * 60, // Set a timeout for the request
 	}
 
-	logger.Info("--------------sendRequestsToAdaptor 22222--------------")
 	// Marshal the payload into JSON
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
 
-	logger.Info("--------------sendRequestsToAdaptor 33333--------------")
 	// Create the POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
-	logger.Info("--------------sendRequestsToAdaptor 4444444--------------")
 	req.Header.Set("Content-Type", "application/json") // Set header to application/json
 
 	// Send the request
@@ -598,7 +589,6 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return "", err
 	}
 	defer resp.Body.Close()
-	logger.Info("--------------sendRequestsToAdaptor 555555--------------")
 
 	// Read the response body
 	responseBody, err := ioutil.ReadAll(resp.Body)
@@ -606,14 +596,12 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return "", err
 	}
 
-	logger.Info("--------------sendRequestsToAdaptor 666666--------------")
 	// Unmarshal the response into a struct
 	var fireblocksAdaptorResponse FireblocksAdaptorResponse
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		log.Errorf("Failed to unmarshal response: %v", err)
 		return "", err
 	}
-	logger.Info("--------------sendRequestsToAdaptor 777777--------------")
 
 	// Check the response status and extract finalSignature if successful
 	if fireblocksAdaptorResponse.Status == "SUCCESS" {
@@ -622,7 +610,6 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 		return transactionHash, nil
 	}
 
-	logger.Info("--------------sendRequestsToAdaptor 888888--------------")
 	// Handle error response
 	err = errors.New(fireblocksAdaptorResponse.Error.Message + " : " + fireblocksAdaptorResponse.Error.Code)
 	log.Errorf("Adaptor error: %v", err)
