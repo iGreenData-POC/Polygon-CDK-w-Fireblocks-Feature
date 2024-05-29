@@ -445,7 +445,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				logger.Debugf("signed tx added to the monitored tx history")
 			}
 		}
-
+		// get the tx hash from the virtual batches table -------------------------
 		// check if the tx is already in the network, if not, send it
 		_, _, err = c.etherman.GetTx(ctx, tx.Hash())
 		// if not found, send it tx to the network
