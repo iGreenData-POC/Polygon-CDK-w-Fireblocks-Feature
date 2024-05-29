@@ -546,7 +546,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
-		
+
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
 		// check if state is already synchronized until the block
