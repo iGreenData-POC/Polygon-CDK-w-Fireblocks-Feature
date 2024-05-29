@@ -317,7 +317,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
 	for txHash := range mTx.history {
-		logger.Infof("monitorTx====inside for loop===000000======>")
+		logger.Infof("monitorTx====inside for loop===000000======> checking tx mindes hash:", txHash.String())
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
 			logger.Infof("monitorTx====inside for loop===000000===error===>")
@@ -480,7 +480,22 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					return
 				}
 
+				logger.Infof("Adding transaction hash to history!", txHashStr)
 				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
+				if errors.Is(err, ErrAlreadyExists) {
+					logger.Infof("Adaptor tx already existed in the history with hash", txHashStr)
+				} else if err != nil {
+					logger.Errorf("failed to add adaptor tx %v to monitored tx history: %v", txHashStr, err)
+					return
+				} else {
+					// update monitored tx changes into storage
+					err = c.storage.Update(ctx, mTx, nil)
+					if err != nil {
+						logger.Errorf("failed to update monitored tx: %v", err)
+						return
+					}
+					logger.Debugf("signed tx added to the monitored tx history")
+				}
 			}
 
 			if mTx.status == MonitoredTxStatusCreated {
@@ -531,6 +546,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 	// if mined, check receipt and mark as Failed or Confirmed
 	if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
+		git
 		receiptBlockNum := lastReceiptChecked.BlockNumber.Uint64()
 
 		// check if state is already synchronized until the block
