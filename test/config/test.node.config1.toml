@@ -131,13 +131,14 @@ WaitPeriodSendSequence = "120s"
 LastBatchVirtualizationTimeMaxWaitPeriod = "600s"
 L1BlockTimestampMargin = "5s"
 MaxTxSizeForL1 = 131072
-L2Coinbase = "0xD44B3b1e21d5F55f5b5Bb050E68218552aa4eAfC"
+FireblocksSenderAddress="0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
+L2Coinbase = "0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 FireblocksFeatureEnabled = true
 FireblocksAdaptorRawSigningUrl="http://34.136.253.25:3000/v1/sign-message"
 SenderAddress = "0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
-	[SequenceSender.StreamClient]
-		Server = "zkevm-sequencer:6900"
+        [SequenceSender.StreamClient]
+                Server = "zkevm-sequencer:6900"
 
 [Aggregator]
 Host = "0.0.0.0"
@@ -147,7 +148,7 @@ VerifyProofInterval = "20m"
 TxProfitabilityCheckerType = "acceptall"
 TxProfitabilityMinReward = "1.1"
 ProofStatePollingInterval = "5s"
-SenderAddress = "0x02fA67020c7e84a447C1f086c63c2514AED7b753"
+SenderAddress = "0x6721F62EcA4963B15e73892092D55bE5c1C26dC7"
 CleanupLockedProofsInterval = "2m"
 GeneratingProofCleanupThreshold = "15m"
 UpgradeEtrogBatchNumber = 0
