@@ -134,7 +134,7 @@ MaxTxSizeForL1 = 131072
 FireblocksSenderAddress="0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 L2Coinbase = "0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 FireblocksFeatureEnabled = true
-FireblocksAdaptorRawSigningUrl="http://34.136.253.25:3000/v1/sign-message"
+FireblocksAdaptorRawSigningUrl="https://fireblocks-adaptor-service-wnaefl637q-ts.a.run.app/v1/sign-message"
 SenderAddress = "0x7778A48a8AE153A14f80FeF14B3618a50Ad977F8"
 PrivateKey = {Path = "/pk/sequencer.keystore", Password = "password"}
         [SequenceSender.StreamClient]
@@ -161,7 +161,7 @@ FireblocksFeatureEnabled = true
 [EthTxManager]
 ForcedGas = 0
 FireblocksFeatureEnabled = true
-FireblocksAdaptorRawTransactionUrl="http://34.136.253.25:3000/v1/transaction"
+FireblocksAdaptorRawTransactionUrl="https://fireblocks-adaptor-service-wnaefl637q-ts.a.run.app/v1/transaction"
 PrivateKeys = [
 	{Path = "/pk/sequencer.keystore", Password = "password"},
 	{Path = "/pk/aggregator.keystore", Password = "password"}
