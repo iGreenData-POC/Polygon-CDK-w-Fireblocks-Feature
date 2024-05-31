@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/jackc/pgx/v4"
+	"google.golang.org/api/idtoken"
 )
 
 const (
@@ -585,6 +586,23 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		return
 	}
 }
+func constructBearerToken(ctx context.Context, url string, logger *log.Logger) (string, error) {
+	// Replace with your Cloud Run service URL
+	cloudRunURL := url
+
+	// Create a token source using the Cloud Run URL
+	tokenSource, err := idtoken.NewTokenSource(context.Background(), cloudRunURL)
+	if err != nil {
+		log.Errorf("failed to create token source: %v", err)
+	}
+
+	// Obtain an identity token
+	token, err := tokenSource.Token()
+	if err != nil {
+		log.Errorf("failed to obtain token: %v", err)
+	}
+	return token.AccessToken, nil
+}
 
 func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload, logger *log.Logger) (string, error) {
 	logger.Info("--------------sendRequestsToAdaptor 1111111--------------")
@@ -607,6 +625,8 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 	}
 	logger.Info("--------------sendRequestsToAdaptor 4444444--------------")
 	req.Header.Set("Content-Type", "application/json") // Set header to application/json
+	token, err := constructBearerToken(ctx, url, logger)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	// Send the request
 	resp, err := client.Do(req)
