@@ -162,7 +162,7 @@ FireblocksFeatureEnabled = true
 [EthTxManager]
 ForcedGas = 0
 FireblocksFeatureEnabled = true
-FireblocksAdaptorRawTransactionUrl="http://10.40.6.18:3000/v1/transaction"
+FireblocksAdaptorRawTransactionUrl="http://34.136.253.25/v1/transaction"
 PrivateKeys = [
 	{Path = "/pk/sequencer.keystore", Password = "password"},
 	{Path = "/pk/aggregator.keystore", Password = "password"}
