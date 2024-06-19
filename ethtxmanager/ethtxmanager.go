@@ -317,8 +317,18 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// all history txs are considered mined until we can't find a receipt for any
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
+
 	for txHash := range mTx.history {
-		logger.Infof("monitorTx====inside for loop===000000======> checking tx mindes hash:", txHash.String())
+
+		logger.Infof("monitorTx====check if the said txhash is in the network===>", txHash)
+		_, _, err = c.etherman.GetTx(ctx, txHash)
+		if errors.Is(err, ethereum.NotFound) {
+			logger.Infof("monitorTx====inside for loop===000000=========transaction not found in the network=====", txHash)
+			continue
+		}
+
+		logger.Infof("monitorTx====inside for loop===000000======> checking tx mined hash:", txHash.String())
+
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
 			logger.Infof("monitorTx====inside for loop===000000===error===>")
@@ -348,6 +358,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		// to check if nonce needs to be reviewed
 		confirmed = false
 		hasFailedReceipts = true
+
+		logger.Infof("==================confirmed, hasFailedReceipts, and allHistoryTx==================", confirmed, hasFailedReceipts, allHistoryTxsWereMined)
 	}
 
 	// we need to check if we need to review the nonce carefully, to avoid sending
@@ -361,6 +373,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	//
 	// in case of the monitored tx is not confirmed yet, all tx were mined and none of them were
 	// mined successfully, we need to review the nonce
+	logger.Infof("==================confirmed, hasFailedReceipts, and allHistoryTx==================", confirmed, hasFailedReceipts, allHistoryTxsWereMined)
+
 	if !confirmed && hasFailedReceipts && allHistoryTxsWereMined {
 		logger.Infof("nonce needs to be updated")
 		err := c.reviewMonitoredTxNonce(ctx, &mTx, logger)
@@ -466,7 +480,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				payload := TransactionPayload{
 					Nonce:           strconv.FormatUint(mTx.nonce, 10),
 					GasPrice:        mTx.gasPrice.String(),
-					GasLimit:        strconv.FormatUint(mTx.gas, 10),
+					GasLimit:        strconv.FormatUint(mTx.gas+mTx.gasOffset, 10),
 					ContractAddress: mTx.to.String(),
 					Data:            hex.EncodeToString(mTx.data),
 					Owner:           mTx.owner,
@@ -480,6 +494,8 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					logger.Errorf("API call failed: %v", err)
 					return
 				}
+
+				logger.Infof("Delete previous history!")
 
 				logger.Infof("Adding transaction hash to history!", txHashStr)
 				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
@@ -573,6 +589,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		if c.shouldContinueToMonitorThisTx(ctx, lastReceiptChecked) {
 			return
 		}
+		logger.Infof("===============Transaction failed, updating Monitor Tx DB=============")
 		// otherwise we understand this monitored tx has failed
 		mTx.status = MonitoredTxStatusFailed
 		mTx.blockNumber = lastReceiptChecked.BlockNumber
@@ -607,7 +624,7 @@ func constructBearerToken(ctx context.Context, url string, logger *log.Logger) (
 func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload, logger *log.Logger) (string, error) {
 	logger.Info("--------------sendRequestsToAdaptor 1111111--------------")
 	client := &http.Client{
-		Timeout: time.Second * 60, // Set a timeout for the request
+		Timeout: time.Second * 500, // Set a timeout for the request
 	}
 
 	logger.Info("--------------sendRequestsToAdaptor 22222--------------")
@@ -618,8 +635,9 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 	}
 
 	logger.Info("--------------sendRequestsToAdaptor 33333--------------")
+	myCtx, _ := context.WithTimeout(context.Background(), 500*time.Second)
 	// Create the POST request
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(myCtx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
