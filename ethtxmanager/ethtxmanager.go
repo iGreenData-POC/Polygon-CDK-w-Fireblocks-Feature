@@ -495,8 +495,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 					return
 				}
 
-				logger.Infof("Delete previous history!")
-
 				logger.Infof("Adding transaction hash to history!", txHashStr)
 				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
 				if errors.Is(err, ErrAlreadyExists) {
