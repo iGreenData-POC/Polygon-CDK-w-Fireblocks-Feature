@@ -598,10 +598,6 @@ run: ## Runs a full node
 	$(RUNL2GASPRICER)
 	$(RUNAGGREGATOR)
 	$(RUNJSONRPC)
-	$(RUNEXPLORERL1)
-	$(RUNEXPLORERL2)
-	$(RUNEXPLORERL1DB)
-	$(RUNEXPLORERL2DB)
 
 .PHONY: run-v1tov2
 run-v1tov2: ## Runs a full node using v1tov2 network
