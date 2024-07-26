@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/rlp"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -68,7 +69,7 @@ type TransactionPayload struct {
 type FireblocksAdaptorResponse struct {
 	Status string `json:"status"`
 	Data   struct {
-		TransactionHash string `json:"transactionHash"`
+		SignedTx string `json:"signedTx"`
 	} `json:"data"`
 	Error struct {
 		Message string `json:"message"`
@@ -405,7 +406,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// }
 
 	var signedTx *types.Transaction
-	var txHashStr string
 	fireblocksFeatureEnabled := c.cfg.FireblocksFeatureEnabled
 	fireblocksAdaptorRawTransactionUrl := c.cfg.FireblocksAdaptorRawTransactionUrl
 
@@ -442,76 +442,76 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 				return
 			}
 			logger.Debugf("signed tx %v created", signedTx.Hash().String())
+		} else {
 
-			// add tx to monitored tx history
-			err = mTx.AddHistory(signedTx)
-			if errors.Is(err, ErrAlreadyExists) {
-				logger.Infof("signed tx already existed in the history")
-			} else if err != nil {
-				logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
+			err := c.reviewMonitoredTxNonce(ctx, &mTx, logger)
+			if err != nil {
+				logger.Errorf("failed to review monitored tx nonce before sending request to adaptor: %v", err)
 				return
-			} else {
-				// update monitored tx changes into storage
-				err = c.storage.Update(ctx, mTx, nil)
-				if err != nil {
-					logger.Errorf("failed to update monitored tx: %v", err)
-					return
-				}
-				logger.Debugf("signed tx added to the monitored tx history")
 			}
+
+			logger.Infof("sending api request to fireblock adaptor service------------")
+			payload := TransactionPayload{
+				Nonce:           strconv.FormatUint(mTx.nonce, 10),
+				GasPrice:        mTx.gasPrice.String(),
+				GasLimit:        strconv.FormatUint(mTx.gas+mTx.gasOffset, 10),
+				ContractAddress: mTx.to.String(),
+				Data:            hex.EncodeToString(mTx.data),
+				Owner:           mTx.owner,
+				ChainId:         "11155111",
+				FbRawSigning:    true,
+			}
+
+			rawTx, err := sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger)
+
+			txBytes, err := hex.DecodeString(rawTx[2:]) // Strip the '0x' prefix
+			if err != nil {
+				fmt.Println("Error decoding hex string:", err)
+				return
+			}
+
+			// Unmarshal the RLP-encoded bytes into a transaction
+
+			err = rlp.DecodeBytes(txBytes, &signedTx)
+			if err != nil {
+				fmt.Println("Error decoding RLP:", err)
+				return
+			}
+
+			//decode received signed tx
 		}
+		// add tx to monitored tx history
+		err = mTx.AddHistory(signedTx)
+		if errors.Is(err, ErrAlreadyExists) {
+			logger.Infof("signed tx already existed in the history")
+		} else if err != nil {
+			logger.Errorf("failed to add signed tx %v to monitored tx history: %v", signedTx.Hash().String(), err)
+			return
+		} else {
+			// update monitored tx changes into storage
+			err = c.storage.Update(ctx, mTx, nil)
+			if err != nil {
+				logger.Errorf("failed to update monitored tx: %v", err)
+				return
+			}
+			logger.Debugf("signed tx added to the monitored tx history")
+		}
+
 		// get the tx hash from the virtual batches table -------------------------
 		// check if the tx is already in the network, if not, send it
-		_, _, err = c.etherman.GetTx(ctx, tx.Hash())
+		_, _, err = c.etherman.GetTx(ctx, signedTx.Hash())
 		// if not found, send it tx to the network
 		if errors.Is(err, ethereum.NotFound) {
 			logger.Debugf("transaction not found in the network")
 
-			if !fireblocksFeatureEnabled {
-				logger.Infof("sending transaction to network------------")
-				err := c.etherman.SendTx(ctx, signedTx)
-				if err != nil {
-					logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
-					return
-				}
-				logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
-			} else {
-				logger.Infof("sending api request to fireblock adaptor service------------")
-				payload := TransactionPayload{
-					Nonce:           strconv.FormatUint(mTx.nonce, 10),
-					GasPrice:        mTx.gasPrice.String(),
-					GasLimit:        strconv.FormatUint(mTx.gas+mTx.gasOffset, 10),
-					ContractAddress: mTx.to.String(),
-					Data:            hex.EncodeToString(mTx.data),
-					Owner:           mTx.owner,
-					ChainId:         "11155111",
-					FbRawSigning:    true,
-				}
-
-				txHashStr, err = sendRequestsToAdaptor(ctx, fireblocksAdaptorRawTransactionUrl, payload, logger)
-
-				if err != nil {
-					logger.Errorf("API call failed: %v", err)
-					return
-				}
-
-				logger.Infof("Adding transaction hash to history!", txHashStr)
-				err = mTx.AddHistoryFireblocks(common.HexToHash(txHashStr))
-				if errors.Is(err, ErrAlreadyExists) {
-					logger.Infof("Adaptor tx already existed in the history with hash", txHashStr)
-				} else if err != nil {
-					logger.Errorf("failed to add adaptor tx %v to monitored tx history: %v", txHashStr, err)
-					return
-				} else {
-					// update monitored tx changes into storage
-					err = c.storage.Update(ctx, mTx, nil)
-					if err != nil {
-						logger.Errorf("failed to update monitored tx: %v", err)
-						return
-					}
-					logger.Debugf("signed tx added to the monitored tx history")
-				}
+			logger.Infof("sending transaction to network------------")
+			err := c.etherman.SendTx(ctx, signedTx)
+			if err != nil {
+				logger.Errorf("failed to send tx %v to network: %v", signedTx.Hash().String(), err)
+				return
 			}
+
+			logger.Infof("signed tx sent to the network: %v", signedTx.Hash().String())
 
 			if mTx.status == MonitoredTxStatusCreated {
 				// update tx status to sent
@@ -531,13 +531,9 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 		log.Infof("waiting transaction to be mined...")
 
 		// wait tx to get mined
-		if fireblocksFeatureEnabled {
-			logger.Infof("WaitTxToBeMinedFireblocks------------")
-			confirmed, err = c.etherman.WaitTxToBeMinedFireblocks(ctx, common.HexToHash(txHashStr), c.cfg.WaitTxToBeMined.Duration)
-		} else {
-			logger.Infof("WaitTxToBeMined------------")
-			confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
-		}
+
+		logger.Infof("WaitTxToBeMined------------")
+		confirmed, err = c.etherman.WaitTxToBeMined(ctx, signedTx, c.cfg.WaitTxToBeMined.Duration)
 
 		if err != nil {
 			logger.Errorf("failed to wait tx to be mined: %v", err)
@@ -550,12 +546,11 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		// get tx receipt
 		var txReceipt *types.Receipt
-		txReceipt, err = c.etherman.GetTxReceipt(ctx, common.HexToHash(txHashStr))
+		txReceipt, err = c.etherman.GetTxReceipt(ctx, signedTx.Hash())
 		if err != nil {
-			logger.Errorf("failed to get tx receipt for tx %v: %v", common.HexToHash(txHashStr).String(), err)
+			logger.Errorf("failed to get tx receipt for tx %v: %v", signedTx.Hash().String(), err)
 			return
 		}
-
 		lastReceiptChecked = *txReceipt
 	}
 
@@ -659,7 +654,9 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 	}
 
 	logger.Info("--------------sendRequestsToAdaptor 666666--------------")
+
 	// Unmarshal the response into a struct
+
 	var fireblocksAdaptorResponse FireblocksAdaptorResponse
 	if err := json.Unmarshal(responseBody, &fireblocksAdaptorResponse); err != nil {
 		log.Errorf("Failed to unmarshal response: %v", err)
@@ -669,9 +666,9 @@ func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionP
 
 	// Check the response status and extract finalSignature if successful
 	if fireblocksAdaptorResponse.Status == "SUCCESS" {
-		transactionHash := fireblocksAdaptorResponse.Data.TransactionHash
-		log.Infof("Received transaction hash: %s", transactionHash)
-		return transactionHash, nil
+		SignedTx := fireblocksAdaptorResponse.Data.SignedTx
+		log.Infof("Received signed transaction: %s", SignedTx)
+		return SignedTx, nil
 	}
 
 	logger.Info("--------------sendRequestsToAdaptor 888888--------------")

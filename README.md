@@ -46,7 +46,7 @@ git clone https://github.com/0xPolygon/cdk-validium-node.git
 ```
 cd cdk-validium-node
 ```
-
+[http_handler.go](vendor%2Fgo.uber.org%2Fzap%2Fhttp_handler.go)
 3. Build the Docker image using the provided Dockerfile:
 
 ```
@@ -143,7 +143,7 @@ The SequenceSender’s role is to send the ordered list of transactions, known a
 The Synchronizer keeps the node’s local state in sync with the Ethereum mainnet. It listens for events emitted by the smart contract on the mainnet and updates the local state to match. The Synchronizer acts as the bridge between the Ethereum mainnet and the node:
 
 - Event Listening: Monitors events emitted by the smart contract on the Ethereum mainnet.
-- Data Availability: downloads data from the Data Availability layer based on L1 events
+- Data Availability: downloads data from the Data Av[go.mod](go.mod)ailability layer based on L1 events
 - State Updating: Aligns the local state with the mainnet, ensuring consistency.
 - Reorg Handling: Detects and manages blockchain reorganizations to maintain data integrity.
 
@@ -198,7 +198,7 @@ The JSON RPC serves as the HTTP interface for user interaction:
 - State Interaction: Retrieves data from the state and processes transactions.
 - Pool Interaction: Stores transactions in the pool.
 
-### L2GasPricer
+### L2GasPricer[go.mod](go.mod)
 
 The L2GasPricer is responsible for calculating the gas price on L2 based on the L1 gas price:
 
@@ -206,7 +206,7 @@ The L2GasPricer is responsible for calculating the gas price on L2 based on the 
 - Gas Price Calculation: Applies a formula to calculate the suggested L2 gas price.
 - Pool Storage: Stores the calculated L2 gas price in the pool for consumption by the rpc.
 
-## Contribute
+## Contribute[go.mod](go.mod)
 
 Before opening a pull request, please read [this guide](./CONTRIBUTING.md).
 
