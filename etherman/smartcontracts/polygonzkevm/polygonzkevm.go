@@ -1356,6 +1356,10 @@ func (_Polygonzkevm *PolygonzkevmTransactor) SequenceBatchesValidium(opts *bind.
 	return _Polygonzkevm.contract.Transact(opts, "sequenceBatchesValidium", batches, l2Coinbase, dataAvailabilityMessage)
 }
 
+func (_Polygonzkevm *PolygonzkevmTransactor) SequenceBatchesValidiumFireblocks(batches []PolygonValidiumEtrogValidiumBatchData, l2Coinbase common.Address, dataAvailabilityMessage []byte) (*common.Address, []byte, error) {
+	return _Polygonzkevm.contract.TransactFireblocks("sequenceBatchesValidium", batches, l2Coinbase, dataAvailabilityMessage)
+}
+
 // SequenceBatchesValidium is a paid mutator transaction binding the contract method 0x2d72c248.
 //
 // Solidity: function sequenceBatchesValidium((bytes32,bytes32,uint64,bytes32)[] batches, address l2Coinbase, bytes dataAvailabilityMessage) returns()

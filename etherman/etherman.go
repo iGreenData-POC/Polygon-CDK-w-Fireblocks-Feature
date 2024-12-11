@@ -944,6 +944,71 @@ func (etherMan *Client) BuildSequenceBatchesTxData(sender common.Address, sequen
 	return tx.To(), tx.Data(), nil
 }
 
+func (etherMan *Client) BuildSequenceBatchesTxDataFireblocks(sequences []ethmanTypes.Sequence, l2Coinbase common.Address, dataAvailabilityMessage []byte) (address *common.Address, data []byte, err error) {
+	to, input, err := etherMan.sequenceBatchesFireblocks(sequences, l2Coinbase, dataAvailabilityMessage)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return to, input, nil
+}
+
+func (etherMan *Client) sequenceBatchesFireblocks(sequences []ethmanTypes.Sequence, l2Coinbase common.Address, dataAvailabilityMessage []byte) (*common.Address, []byte, error) {
+
+	var batches []polygonzkevm.PolygonValidiumEtrogValidiumBatchData
+	for _, seq := range sequences {
+		var ger common.Hash
+		if seq.ForcedBatchTimestamp > 0 {
+			ger = seq.GlobalExitRoot
+		}
+		batch := polygonzkevm.PolygonValidiumEtrogValidiumBatchData{
+			TransactionsHash:     crypto.Keccak256Hash(seq.BatchL2Data),
+			ForcedGlobalExitRoot: ger,
+			ForcedTimestamp:      uint64(seq.ForcedBatchTimestamp),
+			ForcedBlockHashL1:    seq.PrevBlockHash,
+		}
+
+		batches = append(batches, batch)
+	}
+
+	to, input, err := etherMan.ZkEVM.SequenceBatchesValidiumFireblocks(batches, l2Coinbase, dataAvailabilityMessage)
+	if err != nil {
+		log.Debugf("Batches to send: %+v", batches)
+		log.Debug("l2CoinBase: ", l2Coinbase)
+		a, err2 := polygonzkevm.PolygonzkevmMetaData.GetAbi()
+		if err2 != nil {
+			log.Error("error getting abi. Error: ", err2)
+		}
+		input, err3 := a.Pack("sequenceBatches", batches, l2Coinbase)
+		if err3 != nil {
+			log.Error("error packing call. Error: ", err3)
+		}
+		ctx := context.Background()
+		var b string
+		block, err4 := etherMan.EthClient.BlockByNumber(ctx, nil)
+		if err4 != nil {
+			log.Error("error getting blockNumber. Error: ", err4)
+			b = "latest"
+		} else {
+			b = fmt.Sprintf("%x", block.Number())
+		}
+		log.Warnf(`Use the next command to debug it manually.
+		curl --location --request POST 'http://localhost:8545' \
+		--header 'Content-Type: application/json' \
+		--data-raw '{
+			"jsonrpc": "2.0",
+			"method": "eth_call",
+			"params": [{"from": "%s","to":"%s","data":"0x%s"},"0x%s"],
+			"id": 1
+		}'`, &etherMan.SCAddresses[0], common.Bytes2Hex(input), b)
+		if parsedErr, ok := tryParseError(err); ok {
+			err = parsedErr
+		}
+	}
+	return to, input, err
+
+}
+
 func (etherMan *Client) sequenceBatches(opts bind.TransactOpts, sequences []ethmanTypes.Sequence, l2Coinbase common.Address, dataAvailabilityMessage []byte) (*types.Transaction, error) {
 	var batches []polygonzkevm.PolygonValidiumEtrogValidiumBatchData
 	for _, seq := range sequences {

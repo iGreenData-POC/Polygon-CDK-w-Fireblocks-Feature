@@ -317,15 +317,12 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 	// tx in the monitored tx history
 	allHistoryTxsWereMined := true
 	for txHash := range mTx.history {
-		logger.Infof("monitorTx====inside for loop===000000======>")
 		mined, receipt, err := c.etherman.CheckTxWasMined(ctx, txHash)
 		if err != nil {
-			logger.Infof("monitorTx====inside for loop===000000===error===>")
 			logger.Errorf("failed to check if tx %v was mined: %v", txHash.String(), err)
 			continue
 		}
 
-		logger.Infof("monitorTx====inside for loop===000000===mined===>", mined)
 		// if the tx is not mined yet, check that not all the tx were mined and go to the next
 		if !mined {
 			allHistoryTxsWereMined = false
@@ -334,8 +331,6 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 		lastReceiptChecked = *receipt
 
-		logger.Infof("monitorTx====lastReceiptChecked.Status===000000======>", lastReceiptChecked.Status)
-		logger.Infof("monitorTx====types.ReceiptStatusSuccessful===000000======>", types.ReceiptStatusSuccessful)
 		// if the tx was mined successfully we can set it as confirmed and break the loop
 		if lastReceiptChecked.Status == types.ReceiptStatusSuccessful {
 			confirmed = true
@@ -572,7 +567,7 @@ func (c *Client) monitorTx(ctx context.Context, mTx monitoredTx, logger *log.Log
 
 func sendRequestsToAdaptor(ctx context.Context, url string, payload TransactionPayload) (string, error) {
 	client := &http.Client{
-		Timeout: time.Second * 10, // Set a timeout for the request
+		Timeout: time.Second * 60, // Set a timeout for the request
 	}
 
 	// Marshal the payload into JSON

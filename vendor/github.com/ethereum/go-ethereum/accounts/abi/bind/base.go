@@ -243,6 +243,17 @@ func (c *BoundContract) Transact(opts *TransactOpts, method string, params ...in
 	return c.transact(opts, &c.address, input)
 }
 
+func (c *BoundContract) TransactFireblocks(method string, params ...interface{}) (*common.Address, []byte, error) {
+	// Otherwise pack up the parameters and invoke the contract
+	input, err := c.abi.Pack(method, params...)
+	if err != nil {
+		return nil, nil, err
+	}
+	// todo(rjl493456442) check whether the method is payable or not,
+	// reject invalid transaction at the first place
+	return &c.address, input, nil
+}
+
 // RawTransact initiates a transaction with the given raw calldata as the input.
 // It's usually used to initiate transactions for invoking **Fallback** function.
 func (c *BoundContract) RawTransact(opts *TransactOpts, calldata []byte) (*types.Transaction, error) {
